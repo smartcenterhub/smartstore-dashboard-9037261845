@@ -513,12 +513,11 @@ textarea{resize:vertical;min-height:50px;}
 .mis-zero{font-size:11px;color:var(--green);padding:2px 3px;display:block;font-weight:700;}
 
 /* ── 품목 필터 패널 ── */
-.nick-filter-wrap{margin-bottom:10px;}
+.nick-filter-wrap{margin-bottom:6px;display:flex;align-items:flex-start;gap:8px;}
 .nick-filter-header{display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;user-select:none;}
 .nick-filter-header:hover{opacity:.8;}
 .nick-filter-toggle{font-size:14px;font-weight:700;color:var(--t4);margin-left:4px;line-height:1;}
-.nick-filter-body{display:none;padding:8px 0 4px;}
-.nick-filter-body.open{display:block;}
+.nick-filter-body{display:flex;flex-direction:column;gap:5px;flex:1;padding:2px 0;}
 .nick-filter-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px;}
 .nfb{padding:3px 9px;border:1px solid rgba(0,0,0,0.08);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--t2);background:var(--glass-bg-strong);transition:all .12s;}
 .nfb:hover{background:var(--accent-light);color:var(--accent);border-color:rgba(58,58,240,0.2);}
@@ -621,10 +620,7 @@ textarea{resize:vertical;min-height:50px;}
 
   <!-- 품목 필터 -->
   <div class="nick-filter-wrap">
-    <div class="nick-filter-header" onclick="toggleNickFilterPanel()">
-      <span style="font-size:10px;font-weight:600;color:var(--t4);letter-spacing:.04em;text-transform:uppercase;">품목 표시</span>
-      <span class="nick-filter-toggle" id="nick-filter-icon">▾</span>
-    </div>
+    <span style="font-size:10px;font-weight:600;color:var(--t4);letter-spacing:.04em;text-transform:uppercase;">품목 표시</span>
     <div class="nick-filter-body" id="nick-filter-body">
       <!-- 1행: 전체 + 요거트 + 마시는 -->
       <div class="nick-filter-row">
@@ -984,7 +980,9 @@ function injectSkuData(csv) {
     var tag=cols[2]?cols[2].trim():'';
     var code=cols[3]?cols[3].trim():'';
     var name=cols[4]?cols[4].trim():'';
+    var gubun=cols[1]?cols[1].trim():'';
     if(!tag||!code||seen[tag]) return;
+    if(gubun==='행사제안불가') return; // 행사제안불가 제외
     seen[tag]=true;
     newList.push({tag:tag,code:code,name:name});
   });
@@ -1260,7 +1258,6 @@ var SKU_LIST=[
   {tag:"마S2+토핑6",    code:"13049680413", name:"요즘 마시는 그릭요거트 플레인 750ml 2병+블루베리 토핑 6개"},
   {tag:"마S2+메이커",   code:"13049647929", name:"요즘 마시는 그릭요거트 플레인 750ml 2병+그릭요거트 메이커"},
   {tag:"마L2+토핑6",    code:"13057158166", name:"요즘 마시는 그릭요거트 플레인 1.8L 2병+그래놀라 토핑 6개"},
-  {tag:"마S1+꿀스틱",   code:"13049349800", name:"요즘 마시는 그릭요거트 플레인 750ml+꿀스틱 10포"},
   {tag:"플4+요4",       code:"12863905642", name:"[단독] 요즘 그릭요거트 저당세트 6종 택1 (총 8개입)"},
   {tag:"[선물]6+6",     code:"12448492587", name:"[선물포장]요즘 그릭요거트 토핑 선물세트(요거트 6개+토핑 6개)"},
   {tag:"소4+4+줄자",    code:"11943980667", name:"요즘 저당 그릭요거트 소프트 100g 4+4개 & 피팅줄자"},
