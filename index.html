@@ -585,9 +585,7 @@ textarea{resize:vertical;min-height:50px;}
   <span id="tbar-title">주간 대시보드</span>
   <div style="flex:1"></div>
   <span id="sheets-msg" style="font-size:11px;font-weight:600;margin-right:4px;"></span>
-  <button id="sheets-load-btn" onclick="loadSheetData('sheets-load-btn')" class="sync-btn">🔄 물량</button>
-  <button id="promo-load-top-btn" onclick="loadPromoData('promo-load-top-btn')" class="sync-btn">🔄 행사</button>
-  <button id="sku-load-top-btn" onclick="loadSkuData('sku-load-top-btn')" class="sync-btn">🔄 SKU</button>
+  <button id="sync-all-btn" onclick="loadAllData()" class="sync-btn" style="font-weight:800;letter-spacing:.02em;">🔄 전체 연동</button>
   <div style="display:flex;align-items:center;gap:8px;">
     <div class="todaypill" id="today-pill"></div>
     <select id="wk-nav" onchange="onWeekNav()"></select>
@@ -730,13 +728,15 @@ textarea{resize:vertical;min-height:50px;}
         </div>
         <!-- 유형 필터 버튼 -->
         <div class="filter-type-row" style="margin-bottom:10px;">
-          <button id="ftype-all-btn" style="border:1.5px solid #d1d5db;border-radius:12px;padding:4px 13px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;background:#f8fafc;color:#374151;transition:all .15s;" onclick="toggleAllTypeFilter(this)">전체</button>
+          <button id="ftype-all-btn" class="ftype-btn active" onclick="toggleAllTypeFilter(this)" style="background:#0f172a;color:#fff;border-color:transparent;">전체</button>
           <button class="ftype-btn pill-슈퍼적립 active" data-type="슈퍼적립" onclick="toggleTypeFilter('슈퍼적립',this)">💜 슈퍼적립</button>
-          <button class="ftype-btn pill-푸드페스타 active" data-type="푸드페스타" onclick="toggleTypeFilter('푸드페스타',this)">🎉 푸드페스타</button>
+          <button class="ftype-btn pill-푸드페스타 active" data-type="푸드페스타" onclick="toggleTypeFilter('푸드페스타',this)">🎪 푸드페스타</button>
           <button class="ftype-btn pill-한입발견회 active" data-type="한입발견회" onclick="toggleTypeFilter('한입발견회',this)">🍴 한입발견회</button>
           <button class="ftype-btn pill-오늘끝딜 active" data-type="오늘끝딜" onclick="toggleTypeFilter('오늘끝딜',this)">⏰ 오늘끝딜</button>
-          <button class="ftype-btn pill-세일 active" data-type="+세일" onclick="toggleTypeFilter('+세일',this)">🎁 +세일</button>
+          <button class="ftype-btn pill-plus-세일 active" data-type="+세일" onclick="toggleTypeFilter('+세일',this)">🎁 +세일</button>
           <button class="ftype-btn pill-신상품런칭 active" data-type="신상품 런칭" onclick="toggleTypeFilter('신상품 런칭',this)">⭐ 신상품 런칭</button>
+          <button class="ftype-btn pill-한입발견회 active" data-type="취향발견회" onclick="toggleTypeFilter('취향발견회',this)">🍽️ 취향발견회</button>
+          <button class="ftype-btn pill-plus-세일 active" data-type="원쁠딜" onclick="toggleTypeFilter('원쁠딜',this)">🎁 원쁠딜</button>
           <button class="ftype-btn pill-기타 active" data-type="자체행사" onclick="toggleTypeFilter('자체행사',this)">▶️ 자체행사</button>
         </div>
         <!-- 닉네임 검색 -->
@@ -803,12 +803,18 @@ var ITEM_GROUPS=[
 
 /* Promo type meta */
 var PROMO_TYPE_META={
-  "슈퍼적립":{emoji:"💜",tag:"슈적",pillCls:"pill-슈퍼적립",chipCls:"pill-슈퍼적립"},
-  "푸드페스타":{emoji:"🎉",tag:"푸페",pillCls:"pill-푸드페스타",chipCls:"pill-푸드페스타"},
-  "한입발견회":{emoji:"🍴",tag:"한입",pillCls:"pill-한입발견회",chipCls:"pill-한입발견회"},
-  "오늘끝딜":{emoji:"⏰",tag:"오끝",pillCls:"pill-오늘끝딜",chipCls:"pill-오늘끝딜"},
-  "+세일":{emoji:"🎁",tag:"세일",pillCls:"pill-plus-세일",chipCls:"pill-plus-세일"},
-  "신상품 런칭":{emoji:"⭐",tag:"런칭",pillCls:"pill-신상품런칭",chipCls:"pill-신상품런칭"}
+  "슈퍼적립":   {emoji:"💜",tag:"슈적",code:"SP",pillCls:"pill-슈퍼적립",   chipCls:"pill-슈퍼적립"},
+  "푸드페스타": {emoji:"🎪",tag:"푸페",code:"FF",pillCls:"pill-푸드페스타",  chipCls:"pill-푸드페스타"},
+  "한입발견회": {emoji:"🍽️",tag:"한입",code:"HB",pillCls:"pill-한입발견회",  chipCls:"pill-한입발견회"},
+  "취향발견회": {emoji:"🍽️",tag:"취향",code:"CB",pillCls:"pill-한입발견회",  chipCls:"pill-한입발견회"},
+  "오늘끝딜":   {emoji:"⏰",tag:"오끝",code:"TD",pillCls:"pill-오늘끝딜",   chipCls:"pill-오늘끝딜"},
+  "+세일":      {emoji:"🏷️",tag:"세일",code:"SA",pillCls:"pill-plus-세일",  chipCls:"pill-plus-세일"},
+  "원쁠딜":     {emoji:"🎁",tag:"원쁠",code:"OD",pillCls:"pill-plus-세일",  chipCls:"pill-plus-세일"},
+  "신상품 런칭":{emoji:"⭐",tag:"런칭",code:"YL",pillCls:"pill-신상품런칭",  chipCls:"pill-신상품런칭"},
+  "자체행사":   {emoji:"▶️",tag:"자체",code:"YE",pillCls:"pill-기타",        chipCls:"pill-기타"},
+  "상시":       {emoji:"📡",tag:"상시",code:"AL",pillCls:"pill-기타",        chipCls:"pill-기타"},
+  "배송공지":   {emoji:"📢",tag:"공지",code:"DN",pillCls:"pill-기타",        chipCls:"pill-기타"},
+  "기타":       {emoji:"📦",tag:"기타",code:"ET",pillCls:"pill-기타",        chipCls:"pill-기타"}
 };
 function getTypeMeta(type){return PROMO_TYPE_META[type]||{emoji:"▶️",tag:type||"",pillCls:"pill-기타",chipCls:"pill-기타"};}
 function makeTypePill(type){var m=getTypeMeta(type);return '<span class="type-pill '+m.pillCls+'">'+m.emoji+(m.emoji?' ':'')+type+'</span>';}
@@ -847,11 +853,59 @@ var SHEETS_LOADED = false;
 
 /* 행사정보 시트 유형 매핑 */
 var PROMO_EMOJI_TO_TYPE={
-  '💜':'슈퍼적립','🎉':'푸드페스타','🍴':'한입발견회',
-  '⏰':'오늘끝딜','⭐':'신상품 런칭','🎁':'+세일',
-  '▶️':'자체행사'
+  // 이모지 단독
+  '💜':'슈퍼적립','🎪':'푸드페스타','🎉':'푸드페스타',
+  '🍽️':'한입발견회','🍴':'한입발견회',
+  '⏰':'오늘끝딜','🏷️':'+세일','🎁':'원쁠딜',
+  '⭐':'신상품 런칭','▶️':'자체행사','📡':'상시','📢':'배송공지','📦':'기타',
+  // 텍스트 단독
+  '슈퍼적립':'슈퍼적립','푸드페스타':'푸드페스타','한입발견회':'한입발견회',
+  '취향발견회':'취향발견회','오늘끝딜':'오늘끝딜','+세일':'+세일',
+  '원쁠딜':'원쁠딜','신상품 런칭':'신상품 런칭','자사런칭':'신상품 런칭',
+  '자체행사':'자체행사','상시':'상시','배송공지':'배송공지','기타':'기타',
+  // 이모지+텍스트 조합
+  '💜 슈퍼적립':'슈퍼적립','🎪 푸드페스타':'푸드페스타','🍽️ 한입발견회':'한입발견회',
+  '🍽️ 취향발견회':'취향발견회','⏰ 오늘끝딜':'오늘끝딜','🏷️ +세일':'+세일',
+  '🎁 원쁠딜':'원쁠딜','⭐ 신상품 런칭':'신상품 런칭','▶️ 자체행사':'자체행사',
+  '📡 상시':'상시','📢 배송공지':'배송공지'
 };
-var PROMO_BIZ_TYPES=['슈퍼적립','푸드페스타','한입발견회','오늘끝딜','+세일'];
+var PROMO_BIZ_TYPES=['슈퍼적립','푸드페스타','한입발견회','취향발견회','오늘끝딜','+세일','원쁠딜'];
+
+function loadAllData(){
+  var btn=document.getElementById('sync-all-btn');
+  if(btn){btn.textContent='⏳ 연동 중...';btn.disabled=true;}
+  var done=0, total=3;
+  function check(){
+    done++;
+    if(done>=total){
+      var now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+      if(btn){btn.textContent='✅ '+now;btn.disabled=false;}
+      setTimeout(function(){if(btn)btn.textContent='🔄 전체 연동';},3000);
+      showSheetMsg('✅ 전체 연동 완료!','#1a8a4a');
+    }
+  }
+  // 물량
+  var url1='https://docs.google.com/spreadsheets/d/e/'+SHEET_PUBLISHED_ID+'/pub?gid='+SHEET_SUMMARY_GID+'&single=true&output=csv&t='+Date.now();
+  fetch(url1).then(function(r){return r.text();}).then(function(csv){
+    injectSheetData(csv);SHEETS_LOADED=true;
+    addSyncLog('✅ 물량 연동 완료');check();rWeekly();rMonthly();
+  }).catch(function(){addSyncLog('❌ 물량 연동 실패');check();});
+  // 행사
+  var url2='https://docs.google.com/spreadsheets/d/e/'+SHEET_PUBLISHED_ID+'/pub?gid='+SHEET_PROMO_GID+'&single=true&output=csv&t='+Date.now();
+  fetch(url2).then(function(r){return r.text();}).then(function(csv){
+    injectPromoData(csv);
+    rebuildPmap();buildPromoMonthFilter();buildPromoListMonthFilter();rPromoList();rPromoTable();
+    addSyncLog('✅ 행사 연동 완료');check();rWeekly();rMonthly();
+  }).catch(function(){addSyncLog('❌ 행사 연동 실패');check();});
+  // SKU
+  var url3='https://docs.google.com/spreadsheets/d/e/'+SHEET_PUBLISHED_ID+'/pub?gid='+SHEET_SKU_GID+'&single=true&output=csv&t='+Date.now();
+  fetch(url3).then(function(r){return r.text();}).then(function(csv){
+    injectSkuData(csv);buildNickSearchGrid();
+    if(typeof buildSkuNickGrid==='function') buildSkuNickGrid();
+    addSyncLog('✅ SKU 연동 완료');check();
+  }).catch(function(){addSyncLog('❌ SKU 연동 실패');check();});
+}
+
 function loadSheetData(btnId) {
   var btn=document.getElementById(btnId||'sheets-load-btn');
   if(btn){btn.textContent='⏳ 불러오는 중...';btn.disabled=true;}
@@ -964,7 +1018,16 @@ function injectPromoData(csv) {
     if(sid && name && start && sid.indexOf('-')>=0){
       if(cur) newList.push(cur);
       // 유형 결정: 이모지 or 텍스트
-      var type=PROMO_EMOJI_TO_TYPE[typeRaw]||typeRaw||'자체행사';
+      // 이모지+텍스트 조합에서 type 추출
+      var typeClean=typeRaw.replace(/[\s]+/g,' ').trim();
+      var type=PROMO_EMOJI_TO_TYPE[typeClean]||
+               PROMO_EMOJI_TO_TYPE[typeClean.replace(/[^\u0000-\u00ff]/g,'').trim()]||
+               (typeClean.indexOf('슈퍼')>=0?'슈퍼적립':
+               typeClean.indexOf('푸드')>=0?'푸드페스타':
+               typeClean.indexOf('한입')>=0?'한입발견회':
+               typeClean.indexOf('끝딜')>=0||typeClean.indexOf('오끝')>=0?'오늘끝딜':
+               typeClean.indexOf('세일')>=0?'+세일':
+               typeClean.indexOf('런칭')>=0?'신상품 런칭':'자체행사');
       var biz=PROMO_BIZ_TYPES.indexOf(type)>=0?'행사':'자체행사';
       var endVal=(end==='-'||end==='')?'상시':end;
       cur={
@@ -1175,7 +1238,8 @@ var SKU_LIST=[
   {tag:"플4+요4",       code:"12863905642", name:"[단독] 요즘 그릭요거트 저당세트 6종 택1 (총 8개입)"},
   {tag:"[선물]6+6",     code:"12448492587", name:"[선물포장]요즘 그릭요거트 토핑 선물세트(요거트 6개+토핑 6개)"},
   {tag:"소4+4+줄자",    code:"11943980667", name:"요즘 저당 그릭요거트 소프트 100g 4+4개 & 피팅줄자"},
-  {tag:"카4+플4",       code:"11838572943", name:"요즘 그릭요거트 카카오 그래놀라 120g 4개+플레인 100g 4개"}
+  {tag:"카4+플4",       code:"11838572943", name:"요즘 그릭요거트 카카오 그래놀라 120g 4개+플레인 100g 4개"},
+  {tag:"라+플3+3",      code:"12564156934", name:"요즘 그릭요거트 카페라떼 100g+플레인 100g 3+3개"}
 ]
 var SKU_BY_TAG={},SKU_BY_CODE={};
 SKU_LIST.forEach(function(s){SKU_BY_TAG[s.tag]=s;SKU_BY_CODE[s.code]=s;});
@@ -2017,7 +2081,7 @@ function savePromo(){
     tags=codes.split(',').map(function(c){var s=SKU_BY_CODE[c.trim()];return s?s.tag:c.trim();}).join('|');
   }
   var idx=parseInt(el('pr-edit-idx').value),isEdit=idx>=0;
-  var navTypes=['슈퍼적립','푸드페스타','한입발견회','오늘끝딜','+세일'];
+  var navTypes=['슈퍼적립','푸드페스타','한입발견회','취향발견회','오늘끝딜','+세일','원쁠딜'];
   var autoBiz=navTypes.indexOf(type)>=0?'행사':'자체행사';
   var promo={name:name,biz:autoBiz,type:type,start:start,stime:el('pr-stime').value||'0000',end:end,etime:el('pr-etime').value||'2359',tags:tags,code:codes,id:isEdit?PROMO_LIST[idx].id:Date.now()};
   if(isEdit)PROMO_LIST[idx]=promo;else PROMO_LIST.push(promo);
