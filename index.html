@@ -886,17 +886,33 @@ function loadAllData(){
   }
   // 물량
   var url1='https://docs.google.com/spreadsheets/d/e/'+SHEET_PUBLISHED_ID+'/pub?gid='+SHEET_SUMMARY_GID+'&single=true&output=csv&t='+Date.now();
-  fetch(url1).then(function(r){return r.text();}).then(function(csv){
+  console.log('[물량 URL]', url1);
+  fetch(url1).then(function(r){
+    console.log('[물량 응답]', r.status, r.ok);
+    return r.text();
+  }).then(function(csv){
+    console.log('[물량 CSV 첫줄]', csv.split('\n')[0]);
     injectSheetData(csv);SHEETS_LOADED=true;
-    addSyncLog('✅ 물량 연동 완료');check();rWeekly();rMonthly();
-  }).catch(function(){addSyncLog('❌ 물량 연동 실패');check();});
+    addSyncLog('✅ 물량 연동 완료 ('+csv.split('\n').length+'행)');check();rWeekly();rMonthly();
+  }).catch(function(e){
+    console.error('[물량 오류]', e);
+    addSyncLog('❌ 물량 연동 실패: '+e.message);check();
+  });
   // 행사
   var url2='https://docs.google.com/spreadsheets/d/e/'+SHEET_PUBLISHED_ID+'/pub?gid='+SHEET_PROMO_GID+'&single=true&output=csv&t='+Date.now();
-  fetch(url2).then(function(r){return r.text();}).then(function(csv){
+  console.log('[행사 URL]', url2);
+  fetch(url2).then(function(r){
+    console.log('[행사 응답]', r.status, r.ok);
+    return r.text();
+  }).then(function(csv){
+    console.log('[행사 CSV 첫줄]', csv.split('\n')[0]);
     injectPromoData(csv);
     rebuildPmap();buildPromoMonthFilter();buildPromoListMonthFilter();rPromoList();rPromoTable();
-    addSyncLog('✅ 행사 연동 완료');check();rWeekly();rMonthly();
-  }).catch(function(){addSyncLog('❌ 행사 연동 실패');check();});
+    addSyncLog('✅ 행사 연동 완료 ('+csv.split('\n').length+'행)');check();rWeekly();rMonthly();
+  }).catch(function(e){
+    console.error('[행사 오류]', e);
+    addSyncLog('❌ 행사 연동 실패: '+e.message);check();
+  });
   // SKU
   var url3='https://docs.google.com/spreadsheets/d/e/'+SHEET_PUBLISHED_ID+'/pub?gid='+SHEET_SKU_GID+'&single=true&output=csv&t='+Date.now();
   fetch(url3).then(function(r){return r.text();}).then(function(csv){
