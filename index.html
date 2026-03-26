@@ -106,7 +106,7 @@ body{
 .hbtn:disabled{opacity:.3;cursor:not-allowed;}
 .hbtn:not(:disabled):hover{background:#fff;color:var(--tx);box-shadow:0 2px 8px rgba(0,0,0,0.08);}
 .hbar-sep{width:1px;height:20px;background:var(--glass-border-subtle);margin:0 4px;}
-#tbar-title{font-weight:700;font-size:13px;color:var(--tx);margin-left:4px;letter-spacing:-.2px;}
+#tbar-title{font-weight:700;font-size:13px;color:var(--tx);margin-left:4px;letter-spacing:-.2px;white-space:nowrap;flex-shrink:0;}
 .todaypill{
   background:var(--accent-light);color:var(--accent);
   border:1px solid var(--accent-mid);border-radius:12px;
@@ -588,12 +588,12 @@ textarea{resize:vertical;min-height:50px;}
   <button class="hbtn" id="hist-redo" onclick="histRedo()" disabled title="Ctrl+Y">↪</button>
   <div class="hbar-sep"></div>
   <span id="tbar-title">주간 대시보드</span>
+  <select id="wk-nav" onchange="onWeekNav()" style="margin-left:8px;width:110px;flex-shrink:0;"></select>
   <div style="flex:1"></div>
   <span id="sheets-msg" style="font-size:11px;font-weight:600;margin-right:4px;"></span>
   <button id="sync-all-btn" onclick="loadAllData()" class="sync-btn" style="font-weight:800;letter-spacing:.02em;">🔄 전체 연동</button>
   <div style="display:flex;align-items:center;gap:8px;">
     <div class="todaypill" id="today-pill"></div>
-    <select id="wk-nav" onchange="onWeekNav()"></select>
   </div>
 </div>
 
