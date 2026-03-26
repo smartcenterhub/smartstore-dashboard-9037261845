@@ -1191,53 +1191,34 @@ function addSyncLog(msg){
 }
 
 function showSyncLogPopup(){
-  var existing=document.getElementById('sync-log-popup');
-  if(existing){existing.parentNode&&existing.parentNode.removeChild(existing);var ov=document.getElementById('sync-log-overlay');if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);return;}
-  var pop=document.createElement('div');
-  pop.id='sync-log-popup';
-  pop.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:380px;max-height:70vh;overflow-y:auto;background:#fff;border:1px solid rgba(0,0,0,0.12);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.2);z-index:99999;padding:16px 18px;';
-  var hdr=document.createElement('div');
-  hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;';
-  var ttl=document.createElement('span');
-  ttl.style.cssText='font-size:12px;font-weight:700;color:#0f172a;';
-  ttl.textContent='📋 연동 로그 (최대'+SYNC_LOG_MAX+'개)';
-  var bkBtn=document.createElement('button');
-  bkBtn.id='sync-log-backup-btn';
-  bkBtn.textContent='📤 시트에 백업';
-  bkBtn.style.cssText='background:rgba(58,58,240,0.08);border:1px solid rgba(58,58,240,0.2);border-radius:5px;padding:2px 9px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--accent);margin-left:8px;';
-  bkBtn.onclick=function(){backupLogsToSheet();};
-  var cls=document.createElement('button');
-  cls.style.cssText='background:none;border:none;font-size:16px;cursor:pointer;color:#94a3b8;';
-  cls.textContent='✕';
-  cls.onclick=function(){pop.parentNode&&pop.parentNode.removeChild(pop);var ov=document.getElementById('sync-log-overlay');if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);};
-  hdr.appendChild(ttl);hdr.appendChild(bkBtn);hdr.appendChild(cls);
-  pop.appendChild(hdr);
-  if(SYNC_LOG.length){
-    SYNC_LOG.forEach(function(l){
-      var d=document.createElement('div');
-      d.style.cssText='font-size:11px;padding:4px 0;border-bottom:1px solid #f1f5f9;color:'+(l.indexOf('✅')>=0?'#1a8a4a':(l.indexOf('❌')>=0?'#d42020':'#64748b'))+';';
-      d.textContent=l;
-      pop.appendChild(d);
-    });
-  } else {
-    var emp=document.createElement('div');
-    emp.style.cssText='font-size:11px;color:#94a3b8;';
-    emp.textContent='연동 기록이 없어요';
-    pop.appendChild(emp);
+  var modal=document.getElementById('sync-modal');
+  var overlay=document.getElementById('sync-modal-overlay');
+  if(!modal) return;
+  // 로그 내용 렌더
+  var body=document.getElementById('sync-modal-body');
+  var countEl=document.getElementById('sync-modal-count');
+  if(countEl) countEl.textContent=SYNC_LOG.length;
+  if(body){
+    if(SYNC_LOG.length===0){
+      body.innerHTML='<div style="font-size:12px;color:#94a3b8;padding:8px 0;">연동 기록이 없어요</div>';
+    } else {
+      body.innerHTML=SYNC_LOG.map(function(l){
+        var col=l.indexOf('✅')>=0?'#1a8a4a':(l.indexOf('❌')>=0?'#d42020':'#64748b');
+        return '<div style="font-size:11.5px;color:'+col+';padding:5px 0;border-bottom:1px solid #f8fafc;">'+l+'</div>';
+      }).join('');
+    }
   }
-  // 오버레이
-  var overlay=document.createElement('div');
-  overlay.id='sync-log-overlay';
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:99998;';
-  overlay.onclick=function(){overlay.parentNode&&overlay.parentNode.removeChild(overlay);pop.parentNode&&pop.parentNode.removeChild(pop);};
-  document.body.appendChild(overlay);
-  document.body.appendChild(pop);
-  setTimeout(function(){
-    document.addEventListener('click',function h(e){
-      if(!pop.contains(e.target)&&e.target.id!=='sync-log-btn'){pop.parentNode&&pop.parentNode.removeChild(pop);var ov=document.getElementById('sync-log-overlay');if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);document.removeEventListener('click',h);}
-    });
-  },100);
+  modal.style.display='flex';
+  overlay.style.display='block';
 }
+
+function hideSyncLogModal(){
+  var modal=document.getElementById('sync-modal');
+  var overlay=document.getElementById('sync-modal-overlay');
+  if(modal) modal.style.display='none';
+  if(overlay) overlay.style.display='none';
+}
+
 
 function showSheetMsg(msg, color) {
   addSyncLog(msg);
@@ -2381,5 +2362,17 @@ buildSkuNickGrid();
 buildNickSearchGrid();
 saveHistory();
 </script>
+
+<!-- ── 연동 로그 모달 ── -->
+<div id="sync-modal-overlay" onclick="hideSyncLogModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:99998;"></div>
+<div id="sync-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:400px;max-height:75vh;display:none;flex-direction:column;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.25);z-index:99999;overflow:hidden;">
+  <div style="display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid #f1f5f9;flex-shrink:0;">
+    <span style="font-size:13px;font-weight:700;color:#0f172a;">📋 연동 로그</span>
+    <span id="sync-modal-count" style="background:#3a3af0;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;">0</span>
+    <button onclick="backupLogsToSheet()" style="margin-left:auto;background:rgba(58,58,240,0.08);border:1px solid rgba(58,58,240,0.2);border-radius:5px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;color:#3a3af0;">📤 시트에 백업</button>
+    <button onclick="hideSyncLogModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;line-height:1;margin-left:6px;">✕</button>
+  </div>
+  <div id="sync-modal-body" style="overflow-y:auto;padding:10px 16px;flex:1;"></div>
+</div>
 </body>
 </html>
