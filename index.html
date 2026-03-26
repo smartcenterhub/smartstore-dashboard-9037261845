@@ -551,6 +551,12 @@ textarea{resize:vertical;min-height:50px;}
 }
 .sync-btn:hover{background:rgba(255,255,255,0.9);border-color:rgba(0,0,0,0.18);color:var(--tx);}
 .sync-btn:disabled{opacity:.5;cursor:default;}
+
+/* 월별 토글 */
+.month-divider-row td { cursor:pointer; user-select:none; transition:background .12s; }
+.month-divider-row:hover td { background:rgba(58,58,240,0.09)!important; }
+.month-divider-row .month-arrow { font-size:10px; margin-left:6px; transition:transform .2s; display:inline-block; }
+.month-divider-row.collapsed .month-arrow { transform:rotate(-90deg); }
 </style>
 </head>
 <body>
@@ -723,6 +729,7 @@ textarea{resize:vertical;min-height:50px;}
           <select id="promo-month-filter" onchange="rPromoTable()" style="width:auto;font-size:11px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:7px;background:#fff;font-weight:600;"></select>
           <button class="sort-btn on" id="sort-btn-desc" onclick="setSort('desc')">최신순 ↓</button>
           <button class="sort-btn" id="sort-btn-asc"  onclick="setSort('asc')">오래된순 ↑</button>
+          <button id="promo-month-toggle-all" onclick="toggleAllMonths()" title="월별 전체 펼치기/접기" style="background:none;border:1px solid rgba(0,0,0,0.1);border-radius:6px;padding:4px 9px;font-size:14px;cursor:pointer;color:var(--t2);transition:all .15s;line-height:1;" onmouseover="this.style.background='rgba(0,0,0,0.05)'" onmouseout="this.style.background='none'">▾</button>
         </div>
         <!-- 유형 필터 버튼 -->
         <div class="filter-type-row" style="margin-bottom:10px;">
@@ -1748,6 +1755,45 @@ function getPromoMonths(){
 function rPromoList(){/* merged into rPromoTable */}
 
 /* ── 행사 현황 필터/정렬 상태 ── */
+
+var MONTH_COLLAPSED = {}; // { '2026-03': false, '2026-02': true, ... }
+
+function toggleMonthSection(month) {
+  MONTH_COLLAPSED[month] = !MONTH_COLLAPSED[month];
+  _applyMonthCollapse(month);
+}
+
+function _applyMonthCollapse(month) {
+  var collapsed = !!MONTH_COLLAPSED[month];
+  // 구분선 화살표
+  document.querySelectorAll('.month-divider-row').forEach(function(row) {
+    if(row.dataset.month === month) {
+      row.classList.toggle('collapsed', collapsed);
+    }
+  });
+  // 해당 월 데이터 행 숨기기
+  document.querySelectorAll('tr[data-month]').forEach(function(row) {
+    if(row.dataset.month === month && !row.classList.contains('month-divider-row')) {
+      row.style.display = collapsed ? 'none' : '';
+    }
+  });
+}
+
+function toggleAllMonths() {
+  var anyOpen = false;
+  document.querySelectorAll('.month-divider-row').forEach(function(row) {
+    if(!MONTH_COLLAPSED[row.dataset.month]) anyOpen = true;
+  });
+  // 하나라도 열려있으면 전체 닫기, 전부 닫혀있으면 전체 열기
+  document.querySelectorAll('.month-divider-row').forEach(function(row) {
+    var m = row.dataset.month;
+    MONTH_COLLAPSED[m] = anyOpen;
+    _applyMonthCollapse(m);
+  });
+  var btn = document.getElementById('promo-month-toggle-all');
+  if(btn) btn.textContent = anyOpen ? '▸' : '▾';
+}
+
 var PROMO_SORT = 'desc';           // 'desc' | 'asc'
 var PROMO_TYPE_FILTER = {};        // {} = 전체, {슈퍼적립:true} = 해당 유형만 숨김 아님 표시
 var PROMO_NICK_FILTER = [];        // 선택된 닉네임 배열
@@ -1889,7 +1935,13 @@ function rPromoTable(){
       lastMonth=rowMonth;
       var y=rowMonth.substring(2,4), mo=parseInt(rowMonth.substring(5,7));
       var divTr=document.createElement('tr');
-      divTr.innerHTML='<td colspan="5" style="background:rgba(58,58,240,0.05);padding:5px 14px;border-top:2px solid rgba(58,58,240,0.15);border-bottom:1px solid rgba(58,58,240,0.1);"><span style="font-size:11px;font-weight:800;color:var(--accent);letter-spacing:.04em;">'+y+'.'+String(mo).padStart(2,'0')+'월</span></td>';
+      divTr.className='month-divider-row';
+      divTr.dataset.month=rowMonth;
+      divTr.innerHTML='<td colspan="5" style="background:rgba(58,58,240,0.05);padding:5px 14px;border-top:2px solid rgba(58,58,240,0.15);border-bottom:1px solid rgba(58,58,240,0.1);">'+
+        '<span style="font-size:11px;font-weight:800;color:var(--accent);letter-spacing:.04em;">'+y+'.'+String(mo).padStart(2,'0')+'월</span>'+
+        '<span class="month-arrow">▾</span>'+
+        '</td>';
+      divTr.onclick=function(){ toggleMonthSection(rowMonth); };
       tbody.appendChild(divTr);
     }
     var endD=(p.end==='상시')?'9999-12-31':(p.end||'');
@@ -1906,6 +1958,7 @@ function rPromoTable(){
     // 메인 행
     var tr=document.createElement('tr');
     tr.dataset.idx=realIdx;
+    tr.dataset.month=rowMonth;
     var rowId='promo-row-'+realIdx;
     tr.id=rowId;
 
