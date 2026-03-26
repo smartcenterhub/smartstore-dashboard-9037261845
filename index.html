@@ -1158,10 +1158,10 @@ function addSyncLog(msg){
 
 function showSyncLogPopup(){
   var existing=document.getElementById('sync-log-popup');
-  if(existing){existing.parentNode&&existing.parentNode.removeChild(existing);return;}
+  if(existing){existing.parentNode&&existing.parentNode.removeChild(existing);var ov=document.getElementById('sync-log-overlay');if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);return;}
   var pop=document.createElement('div');
   pop.id='sync-log-popup';
-  pop.style.cssText='position:fixed;bottom:60px;left:220px;width:340px;max-height:360px;overflow-y:auto;background:rgba(255,255,255,0.97);backdrop-filter:blur(16px);border:1px solid rgba(0,0,0,0.1);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:9999;padding:14px 16px;';
+  pop.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:380px;max-height:70vh;overflow-y:auto;background:#fff;border:1px solid rgba(0,0,0,0.12);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.2);z-index:99999;padding:16px 18px;';
   var hdr=document.createElement('div');
   hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;';
   var ttl=document.createElement('span');
@@ -1175,7 +1175,7 @@ function showSyncLogPopup(){
   var cls=document.createElement('button');
   cls.style.cssText='background:none;border:none;font-size:16px;cursor:pointer;color:#94a3b8;';
   cls.textContent='✕';
-  cls.onclick=function(){pop.parentNode&&pop.parentNode.removeChild(pop);};
+  cls.onclick=function(){pop.parentNode&&pop.parentNode.removeChild(pop);var ov=document.getElementById('sync-log-overlay');if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);};
   hdr.appendChild(ttl);hdr.appendChild(bkBtn);hdr.appendChild(cls);
   pop.appendChild(hdr);
   if(SYNC_LOG.length){
@@ -1191,10 +1191,16 @@ function showSyncLogPopup(){
     emp.textContent='연동 기록이 없어요';
     pop.appendChild(emp);
   }
+  // 오버레이
+  var overlay=document.createElement('div');
+  overlay.id='sync-log-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:99998;';
+  overlay.onclick=function(){overlay.parentNode&&overlay.parentNode.removeChild(overlay);pop.parentNode&&pop.parentNode.removeChild(pop);};
+  document.body.appendChild(overlay);
   document.body.appendChild(pop);
   setTimeout(function(){
     document.addEventListener('click',function h(e){
-      if(!pop.contains(e.target)&&e.target.id!=='sync-log-btn'){pop.parentNode&&pop.parentNode.removeChild(pop);document.removeEventListener('click',h);}
+      if(!pop.contains(e.target)&&e.target.id!=='sync-log-btn'){pop.parentNode&&pop.parentNode.removeChild(pop);var ov=document.getElementById('sync-log-overlay');if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);document.removeEventListener('click',h);}
     });
   },100);
 }
