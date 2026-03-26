@@ -834,7 +834,7 @@ var CODE_TO_NICK={
 /* ── Google Sheets 연동 ── */
 var SHEET_ID = '1Y5xDhV_6UcdNOtivYdkOO6bduYgdkNmB6_w4zfPXXQM';
 var SHEET_PUBLISHED_ID = '2PACX-1vRTTnSO3YARje1tCKU8XqFz9F4VGjmfIxBN8ab9WjTkuYxXKJ_X_QT-MKNC_v6uuofm0S_EKvXQ1c2O';
-var SHEET_SUMMARY_GID = '1280336969';
+var SHEET_SUMMARY_GID = '2087964304';
 var SHEET_PROMO_GID = '611987186';
 var SHEET_SKU_GID = '1480827801';
 var SHEETS_LOADED = false;
@@ -857,7 +857,7 @@ function loadSheetData(btnId) {
       injectSheetData(csv);
       SHEETS_LOADED=true;
       var now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-      if(btn){btn.textContent='✅ '+now;btn.disabled=false;}
+      if(btn){btn.textContent='✅ '+now;btn.disabled=false;setTimeout(function(){btn.textContent='🔄 물량';},3000);}
       rWeekly();rMonthly();
       showSheetMsg('✅ 물량 데이터 반영 완료!','#1a8a4a');
     })
@@ -878,8 +878,10 @@ function loadSkuData(btnId) {
     .then(function(csv){
       injectSkuData(csv);
       var now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-      if(btn){btn.textContent='✅ '+now;btn.disabled=false;}
-      buildNickSearchGrid(); // 닉네임 패널 갱신
+      if(btn){btn.textContent='✅ '+now;btn.disabled=false;setTimeout(function(){btn.textContent='🔄 물량';},3000);}
+      buildNickSearchGrid(); // 행사관리 닉네임 검색 패널 갱신
+      if(typeof buildSkuNickGrid==='function') buildSkuNickGrid(); // 상품선택 패널 갱신
+      buildSkuNickGrid();      // 상품 선택 패널 갱신
       showSheetMsg('✅ SKU 데이터 반영 완료!','#1a8a4a');
     })
     .catch(function(e){
@@ -920,7 +922,7 @@ function loadPromoData(btnId) {
     .then(function(csv){
       injectPromoData(csv);
       var now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-      if(btn){btn.textContent='✅ '+now;btn.disabled=false;}
+      if(btn){btn.textContent='✅ '+now;btn.disabled=false;setTimeout(function(){btn.textContent='🔄 물량';},3000);}
       rebuildPmap();buildPromoMonthFilter();buildPromoListMonthFilter();rPromoList();rPromoTable();
       rWeekly();rMonthly();
       showSheetMsg('✅ 행사 데이터 반영 완료!','#1a8a4a');
@@ -1024,11 +1026,63 @@ function injectSheetData(csv) {
   });
 }
 
+/* ── 연동 로그 ── */
+var SYNC_LOG=[];
+var SYNC_LOG_MAX=30;
+
+function addSyncLog(msg){
+  var now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  SYNC_LOG.unshift('['+now+'] '+msg);
+  if(SYNC_LOG.length>SYNC_LOG_MAX) SYNC_LOG=SYNC_LOG.slice(0,SYNC_LOG_MAX);
+  var badge=document.getElementById('sync-log-badge');
+  if(badge) badge.textContent=SYNC_LOG.length;
+}
+
+function showSyncLogPopup(){
+  var existing=document.getElementById('sync-log-popup');
+  if(existing){existing.remove();return;}
+  var pop=document.createElement('div');
+  pop.id='sync-log-popup';
+  pop.style.cssText='position:fixed;bottom:60px;left:220px;width:340px;max-height:360px;overflow-y:auto;background:rgba(255,255,255,0.97);backdrop-filter:blur(16px);border:1px solid rgba(0,0,0,0.1);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:9999;padding:14px 16px;';
+  var hdr=document.createElement('div');
+  hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;';
+  var ttl=document.createElement('span');
+  ttl.style.cssText='font-size:12px;font-weight:700;color:#0f172a;';
+  ttl.textContent='📋 연동 로그 (최대'+SYNC_LOG_MAX+'개)';
+  var cls=document.createElement('button');
+  cls.style.cssText='background:none;border:none;font-size:16px;cursor:pointer;color:#94a3b8;';
+  cls.textContent='✕';
+  cls.onclick=function(){pop.remove();};
+  hdr.appendChild(ttl);hdr.appendChild(cls);
+  pop.appendChild(hdr);
+  if(SYNC_LOG.length){
+    SYNC_LOG.forEach(function(l){
+      var d=document.createElement('div');
+      d.style.cssText='font-size:11px;padding:4px 0;border-bottom:1px solid #f1f5f9;color:'+(l.indexOf('✅')>=0?'#1a8a4a':(l.indexOf('❌')>=0?'#d42020':'#64748b'))+';';
+      d.textContent=l;
+      pop.appendChild(d);
+    });
+  } else {
+    var emp=document.createElement('div');
+    emp.style.cssText='font-size:11px;color:#94a3b8;';
+    emp.textContent='연동 기록이 없어요';
+    pop.appendChild(emp);
+  }
+  document.body.appendChild(pop);
+  setTimeout(function(){
+    document.addEventListener('click',function h(e){
+      if(!pop.contains(e.target)&&e.target.id!=='sync-log-btn'){pop.remove();document.removeEventListener('click',h);}
+    });
+  },100);
+}
+
 function showSheetMsg(msg, color) {
+  addSyncLog(msg);
   var el2 = document.getElementById('sheets-msg');
   if(!el2) return;
   el2.textContent = msg;
   el2.style.color = color;
+  // 3초 후 사라짐 (날짜/시간 -> 로그버튼으로 대체)
   setTimeout(function(){ el2.textContent=''; }, 3000);
 }
 
