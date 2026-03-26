@@ -572,6 +572,9 @@ textarea{resize:vertical;min-height:50px;}
       <button class="ni" id="nav-promo" onclick="goPage('promo')">🎯 행사 관리</button>
     </div>
   </nav>
+  <div style="padding:8px 12px 4px;">
+    <button id="sync-log-btn" onclick="showSyncLogPopup()" style="width:100%;background:rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.08);border-radius:7px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--t2);display:flex;align-items:center;gap:6px;justify-content:center;">📋 연동 로그 <span id="sync-log-badge" style="background:var(--accent);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;">0</span></button>
+  </div>
   <div class="sfoot">물량 관리 시스템 v2.1</div>
 </aside>
 
@@ -673,6 +676,7 @@ textarea{resize:vertical;min-height:50px;}
     <div style="flex:1"></div>
     <!-- 토글 -->
     <div style="display:flex;gap:5px;flex-wrap:wrap;">
+      <button id="motgl-all" class="tgl" onclick="moToggleAll(this)" style="background:#0f172a;color:#fff;border-color:transparent;">전체</button>
       <button class="tgl tgl-fc on"  id="motgl-fc"  onclick="moToggle('fc')">예측</button>
       <button class="tgl tgl-pv on"  id="motgl-pv"  onclick="moToggle('pv')">전일</button>
       <button class="tgl tgl-max on" id="motgl-max" onclick="moToggle('max')">최대</button>
@@ -837,6 +841,7 @@ var SHEET_PUBLISHED_ID = '2PACX-1vRTTnSO3YARje1tCKU8XqFz9F4VGjmfIxBN8ab9WjTkuYxX
 var SHEET_SUMMARY_GID = '2087964304';
 var SHEET_PROMO_GID = '611987186';
 var SHEET_SKU_GID = '1480827801';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbworflKoEjhTLwbHY0XEZRYmjMHYwsy_HMsA1wofFaYbj0IL5Fmq7VXt6B-52G5Oc3Eqw/exec';
 var SHEETS_LOADED = false;
 
 
@@ -1030,6 +1035,56 @@ function injectSheetData(csv) {
 var SYNC_LOG=[];
 var SYNC_LOG_MAX=30;
 
+
+function backupLogsToSheet() {
+  var btn = document.getElementById('sync-log-backup-btn');
+  if (!APPS_SCRIPT_URL) {
+    alert('APPS_SCRIPT_URL이 설정되지 않았어요.\nHTML 코드에서 APPS_SCRIPT_URL 변수에 웹앱 URL을 입력해주세요.');
+    return;
+  }
+  if (!SYNC_LOG.length) {
+    alert('백업할 로그가 없어요.');
+    return;
+  }
+  if (btn) { btn.textContent = '⏳ 저장 중...'; btn.disabled = true; }
+
+  // 로그를 구조화된 형태로 변환
+  var logs = SYNC_LOG.map(function(entry) {
+    var isOk  = entry.indexOf('✅') >= 0;
+    var isFail = entry.indexOf('❌') >= 0;
+    // [HH:MM:SS] 메시지 파싱
+    var m = entry.match(/^\[([^\]]+)\]\s(.+)$/);
+    var type = '기타';
+    if (entry.indexOf('물량') >= 0) type = '물량';
+    else if (entry.indexOf('행사') >= 0) type = '행사';
+    else if (entry.indexOf('SKU') >= 0) type = 'SKU';
+    return {
+      timestamp: (m ? new Date().toLocaleDateString('ko-KR') + ' ' + m[1] : entry.substring(0, 20)),
+      type: type,
+      message: m ? m[2] : entry,
+      status: isOk ? '성공' : (isFail ? '실패' : '정보'),
+      env: navigator.userAgent.indexOf('Chrome') >= 0 ? 'Chrome' : 'Web'
+    };
+  });
+
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ logs: logs })
+  })
+  .then(function() {
+    if (btn) { btn.textContent = '✅ 저장됨!'; btn.disabled = false; }
+    setTimeout(function() { if (btn) btn.textContent = '📤 시트에 백업'; }, 2500);
+    addSyncLog('✅ 로그 ' + logs.length + '건 시트 백업 완료');
+  })
+  .catch(function(e) {
+    if (btn) { btn.textContent = '❌ 실패'; btn.disabled = false; }
+    setTimeout(function() { if (btn) btn.textContent = '📤 시트에 백업'; }, 2500);
+    addSyncLog('❌ 시트 백업 실패: ' + e);
+  });
+}
+
 function addSyncLog(msg){
   var now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   SYNC_LOG.unshift('['+now+'] '+msg);
@@ -1049,11 +1104,16 @@ function showSyncLogPopup(){
   var ttl=document.createElement('span');
   ttl.style.cssText='font-size:12px;font-weight:700;color:#0f172a;';
   ttl.textContent='📋 연동 로그 (최대'+SYNC_LOG_MAX+'개)';
+  var bkBtn=document.createElement('button');
+  bkBtn.id='sync-log-backup-btn';
+  bkBtn.textContent='📤 시트에 백업';
+  bkBtn.style.cssText='background:rgba(58,58,240,0.08);border:1px solid rgba(58,58,240,0.2);border-radius:5px;padding:2px 9px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--accent);margin-left:8px;';
+  bkBtn.onclick=function(){backupLogsToSheet();};
   var cls=document.createElement('button');
   cls.style.cssText='background:none;border:none;font-size:16px;cursor:pointer;color:#94a3b8;';
   cls.textContent='✕';
   cls.onclick=function(){pop.remove();};
-  hdr.appendChild(ttl);hdr.appendChild(cls);
+  hdr.appendChild(ttl);hdr.appendChild(bkBtn);hdr.appendChild(cls);
   pop.appendChild(hdr);
   if(SYNC_LOG.length){
     SYNC_LOG.forEach(function(l){
@@ -1988,6 +2048,20 @@ var MO_DATE = { y: new Date().getFullYear(), m: new Date().getMonth() }; // 0-ba
 function moPrev(){ MO_DATE.m--; if(MO_DATE.m<0){MO_DATE.m=11;MO_DATE.y--;} rMonthly(); }
 function moNext(){ MO_DATE.m++; if(MO_DATE.m>11){MO_DATE.m=0;MO_DATE.y++;} rMonthly(); }
 
+
+function moToggleAll(btn){
+  var types=['fc','pv','max','ac','mis'];
+  var anyOff=types.some(function(t){return !MO_SHOW[t];});
+  types.forEach(function(t){
+    MO_SHOW[t]=anyOff;
+    var b=el('motgl-'+t);
+    if(b) b.classList.toggle('on',anyOff);
+  });
+  btn.style.background=anyOff?'#0f172a':'rgba(255,255,255,0.88)';
+  btn.style.color=anyOff?'#fff':'var(--t2)';
+  btn.style.borderColor=anyOff?'transparent':'rgba(0,0,0,0.1)';
+  rMonthly();
+}
 function moToggle(type){
   MO_SHOW[type]=!MO_SHOW[type];
   var btn=el('motgl-'+type);
@@ -2077,15 +2151,13 @@ function rMonthly(){
 
     var numHtml = '<div class="mo-nums">';
 
-    // 1행: 예측|전일|최대|출고 (가로, 토글 ON인 것만, | 구분)
+    // 1행: 예측|전일|최대|출고 항상 4칸 고정 (토글 시 투명도로 on/off 표현)
     var row1Parts=[];
-    if(MO_SHOW.fc)  row1Parts.push('<span class="mo-v mo-n-fc">'+(dayFc?dayFc.toLocaleString():'—')+'</span>');
-    if(MO_SHOW.pv)  row1Parts.push('<span class="mo-v mo-n-pv">'+(dayPv?dayPv.toLocaleString():'—')+'</span>');
-    if(MO_SHOW.max) row1Parts.push('<span class="mo-v mo-n-max">'+(dayMax?dayMax.toLocaleString():'—')+'</span>');
-    if(MO_SHOW.ac)  row1Parts.push('<span class="mo-v mo-n-ac">'+(dayAc?dayAc.toLocaleString():'—')+'</span>');
-    if(row1Parts.length){
-      numHtml += '<div class="mo-row1">'+row1Parts.join('<span class="mo-sep">|</span>')+'</div>';
-    }
+    row1Parts.push('<span class="mo-v mo-n-fc" style="opacity:'+(MO_SHOW.fc?1:0.2)+';">'+(dayFc?dayFc.toLocaleString():'—')+'</span>');
+    row1Parts.push('<span class="mo-v mo-n-pv" style="opacity:'+(MO_SHOW.pv?1:0.2)+';">'+(dayPv?dayPv.toLocaleString():'—')+'</span>');
+    row1Parts.push('<span class="mo-v mo-n-max" style="opacity:'+(MO_SHOW.max?1:0.2)+';">'+(dayMax?dayMax.toLocaleString():'—')+'</span>');
+    row1Parts.push('<span class="mo-v mo-n-ac" style="opacity:'+(MO_SHOW.ac?1:0.2)+';">'+(dayAc?dayAc.toLocaleString():'—')+'</span>');
+    numHtml += '<div class="mo-row1">'+row1Parts.join('<span class="mo-sep" style="opacity:0.3;">|</span>')+'</div>';
 
     // 2행: 미출 합계
     if(MO_SHOW.mis){
