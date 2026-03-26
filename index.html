@@ -589,6 +589,7 @@ textarea{resize:vertical;min-height:50px;}
   <div class="hbar-sep"></div>
   <span id="tbar-title">주간 대시보드</span>
   <select id="wk-nav" onchange="onWeekNav()" style="margin-left:8px;width:110px;flex-shrink:0;"></select>
+  <button onclick="goThisWeek()" class="sync-btn" style="flex-shrink:0;font-size:10.5px;">이번주</button>
   <div style="flex:1"></div>
   <span id="sheets-msg" style="font-size:11px;font-weight:600;margin-right:4px;"></span>
   <button id="sync-all-btn" onclick="loadAllData()" class="sync-btn" style="font-weight:800;letter-spacing:.02em;">🔄 전체 연동</button>
@@ -1394,6 +1395,7 @@ function initTop(){
   }
 }
 function onWeekNav(){var v=el('wk-nav').value;if(v){S.ws=getMonday(new Date(v));rWeekly();}}
+function goThisWeek(){S.ws=getMonday(new Date());rWeekly();var sel=el('wk-nav');if(sel)sel.value=fmtDate(S.ws);}
 function moveWeek(dir){var d=new Date(S.ws);d.setDate(d.getDate()+dir*7);S.ws=d;syncWkNav();rWeekly();}
 function syncWkNav(){var k=fmtDate(S.ws),sel=el('wk-nav');for(var i=0;i<sel.options.length;i++){if(sel.options[i].value===k){sel.selectedIndex=i;break;}}}
 
