@@ -1158,7 +1158,7 @@ function addSyncLog(msg){
 
 function showSyncLogPopup(){
   var existing=document.getElementById('sync-log-popup');
-  if(existing){existing.remove();return;}
+  if(existing){existing.parentNode&&existing.parentNode.removeChild(existing);return;}
   var pop=document.createElement('div');
   pop.id='sync-log-popup';
   pop.style.cssText='position:fixed;bottom:60px;left:220px;width:340px;max-height:360px;overflow-y:auto;background:rgba(255,255,255,0.97);backdrop-filter:blur(16px);border:1px solid rgba(0,0,0,0.1);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:9999;padding:14px 16px;';
@@ -1175,7 +1175,7 @@ function showSyncLogPopup(){
   var cls=document.createElement('button');
   cls.style.cssText='background:none;border:none;font-size:16px;cursor:pointer;color:#94a3b8;';
   cls.textContent='✕';
-  cls.onclick=function(){pop.remove();};
+  cls.onclick=function(){pop.parentNode&&pop.parentNode.removeChild(pop);};
   hdr.appendChild(ttl);hdr.appendChild(bkBtn);hdr.appendChild(cls);
   pop.appendChild(hdr);
   if(SYNC_LOG.length){
@@ -1194,7 +1194,7 @@ function showSyncLogPopup(){
   document.body.appendChild(pop);
   setTimeout(function(){
     document.addEventListener('click',function h(e){
-      if(!pop.contains(e.target)&&e.target.id!=='sync-log-btn'){pop.remove();document.removeEventListener('click',h);}
+      if(!pop.contains(e.target)&&e.target.id!=='sync-log-btn'){pop.parentNode&&pop.parentNode.removeChild(pop);document.removeEventListener('click',h);}
     });
   },100);
 }
