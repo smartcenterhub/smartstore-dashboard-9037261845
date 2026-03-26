@@ -832,6 +832,7 @@ var SHOW={fc:true,pv:true,max:true,ac:true,mis:true};
 var SHOW_NICKS={};ITEM_NICK.forEach(function(n){SHOW_NICKS[n]=true;});
 
 /* ── Google Sheets 품목코드 → 닉네임 매핑 ── */
+// 품목코드(Y-P-00) → 닉네임 매핑 (품목기준표용)
 var CODE_TO_NICK={
   'Y-P-00':'플','Y-S-00':'소','Y-V-A0':'알','Y-V-M0':'말','Y-V-L0':'라',
   'Y-P-BR':'블','Y-P-AP':'애','Y-P-OG':'오','Y-S-CR':'크','Y-P-KK':'카',
@@ -840,6 +841,7 @@ var CODE_TO_NICK={
   'T-3-BR':'블토','T-3-CR':'크토','T-3-CC':'초토','T-3-ST':'딸토','T-3-KK':'카토',
   'T-1-HS':'꿀','G-1-FI':'줄자','G-1-IC':'파우치','G-1-MA':'메이커'
 };
+// summary 시트 product_code(Y-P-00 형식) 기반 → 동일하게 사용
 
 /* ── Google Sheets 연동 ── */
 var SHEET_ID = '1Y5xDhV_6UcdNOtivYdkOO6bduYgdkNmB6_w4zfPXXQM';
@@ -1066,6 +1068,8 @@ function injectPromoData(csv) {
   PROMO_LIST=newList.filter(function(p){
     return p.name && p.start && p.name.indexOf('공지')<0 && p.start.match(/\d{4}-\d{2}-\d{2}/);
   });
+  console.log('[injectPromoData] 행사 로드:', PROMO_LIST.length, '건');
+  if(PROMO_LIST.length>0) console.log('[행사 샘플]', PROMO_LIST[0]);
 }
 
 function parseCSVLine(line){
@@ -1083,6 +1087,8 @@ function parseCSVLine(line){
 
 function injectSheetData(csv) {
   var lines = csv.trim().split('\n').slice(1);
+  var injected=0;
+  console.log('[injectSheetData] 총 행수:', lines.length);
   lines.forEach(function(line) {
     var cols = [], inQ = false, cur = '';
     for(var i=0; i<line.length; i++) {
@@ -1100,14 +1106,26 @@ function injectSheetData(csv) {
     var ac=parseInt(cols[6])||0;
 
     if(!date || !code) return;
+    // product_code가 Y-P-00 형식이면 CODE_TO_NICK, 숫자형이면 SKU_BY_CODE에서 역으로 찾기
     var nick = CODE_TO_NICK[code];
-    if(!nick) return;
+    if(!nick && SKU_BY_CODE[code]) nick = SKU_BY_CODE[code].tag;
+    if(!nick){
+      // product_name(cols[2])으로 닉네임 매핑 시도
+      var pname=cols[2]?cols[2].trim():'';
+      if(injected<3) console.warn('[코드 매핑 실패] date:',date,'code:',code,'name:',pname);
+      return;
+    }
 
     if(fc>0){ if(!S.fc[date]) S.fc[date]={}; S.fc[date][nick]=fc; }
     if(pv>0){ if(!S.pv[date]) S.pv[date]={}; S.pv[date][nick]=pv; }
     if(mx>0){ if(!S.mx[date]) S.mx[date]={}; S.mx[date][nick]=mx; }
     if(ac>0){ if(!S.ac[date]) S.ac[date]={}; S.ac[date][nick]=ac; }
+    injected++;
   });
+  console.log('[injectSheetData] 주입 완료:', injected, '행');
+  // 샘플 날짜·코드 출력
+  var sample = csv.trim().split('\n')[1];
+  if(sample) console.log('[injectSheetData] 샘플행:', sample.substring(0,80));
 }
 
 /* ── 연동 로그 ── */
