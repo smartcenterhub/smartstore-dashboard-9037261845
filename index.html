@@ -716,6 +716,7 @@ textarea{resize:vertical;min-height:50px;}
       <div class="card-title">
         📅 행사 운영 현황
           <span style="font-size:10px;color:#94a3b8;font-style:italic;margin-left:4px;">행 클릭 → 수정</span>
+          <a href="https://docs.google.com/spreadsheets/d/1Y5xDhV_6UcdNOtivYdkOO6bduYgdkNmB6_w4zfPXXQM/edit?gid=611987186#gid=611987186" target="_blank" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;background:rgba(26,138,74,0.08);border:1px solid rgba(26,138,74,0.2);border-radius:6px;padding:4px 11px;font-size:11px;font-weight:700;color:#1a8a4a;text-decoration:none;transition:all .15s;" onmouseover="this.style.background='rgba(26,138,74,0.15)'" onmouseout="this.style.background='rgba(26,138,74,0.08)'">📋 행사 시트에서 수정</a>
         </div>
         <!-- 필터 컨트롤 -->
         <div class="filter-controls">
@@ -1261,6 +1262,16 @@ var SKU_LIST=[
 ]
 var SKU_BY_TAG={},SKU_BY_CODE={};
 SKU_LIST.forEach(function(s){SKU_BY_TAG[s.tag]=s;SKU_BY_CODE[s.code]=s;});
+
+function fmtDateWithDay(dateStr, timeStr){
+  if(!dateStr) return '';
+  var days=['일','월','화','수','목','금','토'];
+  var d=new Date(dateStr);
+  var day=days[d.getDay()];
+  var t=timeStr?String(timeStr).padStart(4,'0'):'';
+  var hm=t?t.substring(0,2)+':'+t.substring(2,4):'';
+  return dateStr+'('+day+')'+(hm&&hm!=='00:00'?' '+hm:'');
+}
 
 function getMonday(d){d=new Date(d);var dy=d.getDay(),diff=dy===0?-6:1-dy;d.setDate(d.getDate()+diff);d.setHours(0,0,0,0);return d;}
 function fmtDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -1869,8 +1880,18 @@ function rPromoTable(){
     return PROMO_SORT==='asc'?cmp:-cmp;
   });
   if(!list.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:#94a3b8;">조건에 맞는 행사가 없습니다</td></tr>';return;}
+  var lastMonth='';
   list.forEach(function(p){
     var realIdx=PROMO_LIST.indexOf(p);
+    // 월 구분선
+    var rowMonth=p.start?p.start.substring(0,7):'';
+    if(rowMonth && rowMonth!==lastMonth){
+      lastMonth=rowMonth;
+      var y=rowMonth.substring(2,4), mo=parseInt(rowMonth.substring(5,7));
+      var divTr=document.createElement('tr');
+      divTr.innerHTML='<td colspan="5" style="background:rgba(58,58,240,0.05);padding:5px 14px;border-top:2px solid rgba(58,58,240,0.15);border-bottom:1px solid rgba(58,58,240,0.1);"><span style="font-size:11px;font-weight:800;color:var(--accent);letter-spacing:.04em;">'+y+'.'+String(mo).padStart(2,'0')+'월</span></td>';
+      tbody.appendChild(divTr);
+    }
     var endD=(p.end==='상시')?'9999-12-31':(p.end||'');
     var status,stCls;
     // 날짜 기준 자동 계산 (항상 최신)
@@ -1899,7 +1920,12 @@ function rPromoTable(){
       '<td onclick="event.stopPropagation()"><div class="status-wrap" id="sw-'+realIdx+'">'+'<button class="status-pill sp-'+status+'" onclick="toggleStatusMenu(event,'+realIdx+')">'+status+' ▾</button>'+'<div class="status-menu" id="sm-'+realIdx+'" style="display:none;">'+'<button class="sp-item sp-예정" onclick="pickStatus(event,'+realIdx+',\'예정\')">예정</button>'+'<button class="sp-item sp-진행중" onclick="pickStatus(event,'+realIdx+',\'진행중\')">진행중</button>'+'<button class="sp-item sp-종료" onclick="pickStatus(event,'+realIdx+',\'종료\')">종료</button>'+'<button class="sp-item sp-보류" onclick="pickStatus(event,'+realIdx+',\'보류\')">보류</button>'+'</div></div></td>'+
       '<td style="text-align:center;">'+typeEmoji+'</td>'+
       '<td style="font-weight:600;min-width:110px;">'+p.name+'</td>'+
-      '<td style="white-space:nowrap;min-width:150px;">'+(p.start||'')+' ~ '+endStr+'</td>'+
+      '<td style="white-space:nowrap;min-width:170px;font-size:11.5px;line-height:1.6;">'+
+        '<div style="color:#374151;">'+fmtDateWithDay(p.start,p.stime)+'</div>'+
+        '<div style="color:#94a3b8;font-size:10px;">~ </div>'+
+        (p.end==='상시'?'<div><span style="color:#7c3aed;font-weight:700;">상시</span></div>':
+        '<div style="color:#374151;">'+fmtDateWithDay(p.end,p.etime)+'</div>')+
+        '</td>'+
       '<td>'+tagBtn+'</td>';
     tr.onclick=function(e){
       if(e.target.closest('.tag-toggle-btn'))return;
