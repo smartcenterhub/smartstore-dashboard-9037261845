@@ -564,7 +564,8 @@ textarea{resize:vertical;min-height:50px;}
   <span id="tbar-title">주간 대시보드</span>
   <div style="flex:1"></div>
   <span id="sheets-msg" style="font-size:11px;font-weight:600;margin-right:4px;"></span>
-  <button id="sheets-load-btn" onclick="loadSheetData()" style="background:linear-gradient(135deg,#3a3af0,#5a3af0);color:#fff;border:none;border-radius:6px;padding:5px 13px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(58,58,240,0.3);">🔄 시트 불러오기</button>
+  <button id="sheets-load-btn" onclick="loadSheetData('sheets-load-btn')" style="background:linear-gradient(135deg,#3a3af0,#5a3af0);color:#fff;border:none;border-radius:6px;padding:5px 13px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(58,58,240,0.3);">🔄 물량</button>
+  <button id="promo-load-top-btn" onclick="loadPromoData('promo-load-top-btn')" style="background:linear-gradient(135deg,#0d7a6b,#1a8a4a);color:#fff;border:none;border-radius:6px;padding:5px 13px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(13,122,107,0.3);">🔄 행사</button>
   <div style="display:flex;align-items:center;gap:8px;">
     <div class="todaypill" id="today-pill"></div>
     <select id="wk-nav" onchange="onWeekNav()"></select>
@@ -580,6 +581,7 @@ textarea{resize:vertical;min-height:50px;}
     <button class="btn-nav" onclick="moveWeek(1)">다음 ＞</button>
     <div style="flex:1"></div>
     <span class="save-msg" id="wk-save-msg"></span>
+    <button id="wk-load-btn" onclick="loadSheetData('wk-load-btn')" style="background:linear-gradient(135deg,#3a3af0,#5a3af0);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">🔄 물량 연동</button>
     <button class="btn-save" onclick="saveWeekDayEdits()">수정 저장</button>
   </div>
   <div class="toggle-bar">
@@ -648,6 +650,7 @@ textarea{resize:vertical;min-height:50px;}
     <button class="btn-nav" onclick="moPrev()">＜ 이전</button>
     <h2 id="mo-title" style="font-size:17px;font-weight:700;margin:0;color:var(--tx);letter-spacing:-.3px;"></h2>
     <button class="btn-nav" onclick="moNext()">다음 ＞</button>
+    <button id="mo-load-btn" onclick="loadSheetData('mo-load-btn')" style="background:linear-gradient(135deg,#3a3af0,#5a3af0);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">🔄 물량 연동</button>
     <div style="flex:1"></div>
     <!-- 토글 -->
     <div style="display:flex;gap:5px;flex-wrap:wrap;">
@@ -694,6 +697,7 @@ textarea{resize:vertical;min-height:50px;}
       <div class="card-title">
         📅 행사 운영 현황
           <span style="font-size:10px;color:#94a3b8;font-style:italic;margin-left:4px;">행 클릭 → 수정</span>
+          <button id="promo-load-btn" onclick="loadPromoData('promo-load-btn')" style="margin-left:auto;background:linear-gradient(135deg,#0d7a6b,#1a8a4a);color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">🔄 행사 연동</button>
         </div>
         <!-- 필터 컨트롤 -->
         <div class="filter-controls">
@@ -809,36 +813,124 @@ var CODE_TO_NICK={
 };
 
 /* ── Google Sheets 연동 ── */
-var SHEET_ID = '12tao_qvsDmehDXgel2imL5YiKUMjxD98';
-var SHEET_PUBLISHED_ID = '2PACX-1vQI4yydtMc_wwJ5eY0C_1JlKaahCUncowEMcC5Pjf2uzNqj-P8efACyuVoi0OzBfQ';
-var SHEET_SUMMARY_GID = '2087964304';
+var SHEET_ID = '1Y5xDhV_6UcdNOtivYdkOO6bduYgdkNmB6_w4zfPXXQM';
+var SHEET_PUBLISHED_ID = '2PACX-1vRTTnSO3YARje1tCKU8XqFz9F4VGjmfIxBN8ab9WjTkuYxXKJ_X_QT-MKNC_v6uuofm0S_EKvXQ1c2O';
+var SHEET_SUMMARY_GID = '1280336969';
+var SHEET_PROMO_GID = '611987186';
 var SHEETS_LOADED = false;
 
-function loadSheetData() {
-  var btn = document.getElementById('sheets-load-btn');
-  if(btn){ btn.textContent='⏳ 불러오는 중...'; btn.disabled=true; }
 
-  // 웹에 게시 CSV URL — gid는 시트 URL에서 확인 필요
-  // ⚠️ summary 시트 탭 클릭 후 URL의 gid= 숫자를 SUMMARY_GID에 입력하세요
-  var SUMMARY_GID = SHEET_SUMMARY_GID;
-  var url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQI4yydtMc_wwJ5eY0C_1JlKaahCUncowEMcC5Pjf2uzNqj-P8efACyuVoi0OzBfQ/pub?gid=' + SUMMARY_GID + '&single=true&output=csv&t=' + Date.now();
-
+/* 행사정보 시트 유형 매핑 */
+var PROMO_EMOJI_TO_TYPE={
+  '💜':'슈퍼적립','🎉':'푸드페스타','🍴':'한입발견회',
+  '⏰':'오늘끝딜','⭐':'신상품 런칭','🎁':'+세일',
+  '▶️':'자체행사'
+};
+var PROMO_BIZ_TYPES=['슈퍼적립','푸드페스타','한입발견회','오늘끝딜','+세일'];
+function loadSheetData(btnId) {
+  var btn=document.getElementById(btnId||'sheets-load-btn');
+  if(btn){btn.textContent='⏳ 불러오는 중...';btn.disabled=true;}
+  var url='https://docs.google.com/spreadsheets/d/e/2PACX-1vRTTnSO3YARje1tCKU8XqFz9F4VGjmfIxBN8ab9WjTkuYxXKJ_X_QT-MKNC_v6uuofm0S_EKvXQ1c2O/pub?gid='+SHEET_SUMMARY_GID+'&single=true&output=csv&t='+Date.now();
   fetch(url)
-    .then(function(res){ return res.text(); })
+    .then(function(res){return res.text();})
     .then(function(csv){
       injectSheetData(csv);
-      SHEETS_LOADED = true;
-      var now = new Date().toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'});
-      if(btn){ btn.textContent='✅ 불러옴 ('+ now +')'; btn.disabled=false; }
-      rWeekly(); rMonthly();
-      showSheetMsg('✅ 시트 데이터 반영 완료!', '#1a8a4a');
+      SHEETS_LOADED=true;
+      var now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+      if(btn){btn.textContent='✅ '+now;btn.disabled=false;}
+      rWeekly();rMonthly();
+      showSheetMsg('✅ 물량 데이터 반영 완료!','#1a8a4a');
     })
     .catch(function(e){
-      console.error('Sheets fetch 오류:', e);
-      if(btn){ btn.textContent='🔄 시트 불러오기'; btn.disabled=false; }
-      showSheetMsg('❌ 불러오기 실패 — 시트 공개 설정을 확인해주세요', '#d42020');
+      console.error('물량 fetch 오류:',e);
+      if(btn){btn.textContent='🔄 물량 불러오기';btn.disabled=false;}
+      showSheetMsg('❌ 물량 불러오기 실패 — 공개 설정 확인','#d42020');
     });
 }
+
+function loadPromoData(btnId) {
+  var btn=document.getElementById(btnId||'promo-load-btn');
+  if(btn){btn.textContent='⏳ 불러오는 중...';btn.disabled=true;}
+  var url='https://docs.google.com/spreadsheets/d/e/2PACX-1vRTTnSO3YARje1tCKU8XqFz9F4VGjmfIxBN8ab9WjTkuYxXKJ_X_QT-MKNC_v6uuofm0S_EKvXQ1c2O/pub?gid='+SHEET_PROMO_GID+'&single=true&output=csv&t='+Date.now();
+  fetch(url)
+    .then(function(res){return res.text();})
+    .then(function(csv){
+      injectPromoData(csv);
+      var now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+      if(btn){btn.textContent='✅ '+now;btn.disabled=false;}
+      rebuildPmap();buildPromoMonthFilter();buildPromoListMonthFilter();rPromoList();rPromoTable();
+      rWeekly();rMonthly();
+      showSheetMsg('✅ 행사 데이터 반영 완료!','#1a8a4a');
+    })
+    .catch(function(e){
+      console.error('행사 fetch 오류:',e);
+      if(btn){btn.textContent='🔄 행사 불러오기';btn.disabled=false;}
+      showSheetMsg('❌ 행사 불러오기 실패 — 공개 설정 확인','#d42020');
+    });
+}
+
+function injectPromoData(csv) {
+  var lines=csv.trim().split('\n');
+  // 헤더 찾기 (SID 있는 행)
+  var dataStart=0;
+  for(var i=0;i<lines.length;i++){
+    if(lines[i].indexOf('SID')>=0||lines[i].indexOf('시작일')>=0){dataStart=i+1;break;}
+  }
+  var newList=[];
+  var cur=null;
+  for(var i=dataStart;i<lines.length;i++){
+    var cols=parseCSVLine(lines[i]);
+    if(!cols||cols.length<4) continue;
+    var sid=cols[0]?cols[0].trim():'';
+    var typeRaw=cols[1]?cols[1].trim():'';
+    var name=cols[2]?cols[2].trim():'';
+    var start=cols[3]?cols[3].trim():'';
+    var stime=cols[4]?cols[4].replace(':',''):'0000';
+    var end=cols[5]?cols[5].trim():'';
+    var etime=cols[6]?cols[6].replace(':',''):'2359';
+    var nick=cols[9]?cols[9].trim():'';
+    var code=cols[11]?cols[11].trim():'';
+    // 메인 행 (SID 있음)
+    if(sid && name && start && sid.indexOf('-')>=0){
+      if(cur) newList.push(cur);
+      // 유형 결정: 이모지 or 텍스트
+      var type=PROMO_EMOJI_TO_TYPE[typeRaw]||typeRaw||'자체행사';
+      var biz=PROMO_BIZ_TYPES.indexOf(type)>=0?'행사':'자체행사';
+      var endVal=(end==='-'||end==='')?'상시':end;
+      cur={
+        name:name, biz:biz, type:type,
+        start:start, stime:stime.replace(':','').substring(0,4)||'0000',
+        end:endVal, etime:etime.replace(':','').substring(0,4)||'2359',
+        tags:nick?nick:'', code:code?code:'',
+        id:Date.now()+newList.length
+      };
+    } else if(cur && nick){
+      // 서브행: 태그/코드 누적
+      if(cur.tags && !cur.tags.includes(nick)) cur.tags+='|'+nick;
+      else if(!cur.tags) cur.tags=nick;
+      if(code && cur.code && !cur.code.includes(code)) cur.code+=','+code;
+      else if(code && !cur.code) cur.code=code;
+    }
+  }
+  if(cur) newList.push(cur);
+  // 배송공지/기타 제외 (시작일 없거나 이름에 "공지" 포함)
+  PROMO_LIST=newList.filter(function(p){
+    return p.name && p.start && p.name.indexOf('공지')<0 && p.start.match(/\d{4}-\d{2}-\d{2}/);
+  });
+}
+
+function parseCSVLine(line){
+  var cols=[],inQ=false,cur='';
+  for(var i=0;i<line.length;i++){
+    var ch=line[i];
+    if(ch==='"'){inQ=!inQ;}
+    else if(ch===','&&!inQ){cols.push(cur.trim());cur='';}
+    else{cur+=ch;}
+  }
+  cols.push(cur.trim());
+  return cols;
+}
+
 
 function injectSheetData(csv) {
   var lines = csv.trim().split('\n').slice(1);
@@ -880,60 +972,7 @@ function showSheetMsg(msg, color) {
 var PMAP={};
 var HIST=[],HIST_POS=-1;
 
-var PROMO_LIST=[
-  // ── 26년 3월 ──
-  {name:"3월 푸드페스타",   biz:"행사",     type:"푸드페스타",  start:"2026-03-16",stime:"0000",end:"2026-03-22",etime:"2359",
-   tags:"라5+플1|알5+플1|오3+플3|푸3+플3|블5+소1|플4+4+블1|플4+요4|말3+플3+초토3|애4+알1|토핑6+6",
-   code:"12580366413,11470622749,12409281824,12794215123,7587925609,11809718890,12863905642,12541261594,11438362925,10994518732", id:2},
-  {name:"3월 한입발견회",   biz:"행사",     type:"한입발견회",   start:"2026-03-06",stime:"0000",end:"2026-03-12",etime:"2359",
-   tags:"[선물]6+6|카4+플4",
-   code:"12448492587,11838572943", id:3},
-  {name:"3월 마시는 gfa 상시",   biz:"자체행사", type:"자체행사",     start:"2026-03-03",stime:"0000",end:"상시",      etime:"2359",
-   tags:"마S2+메이커",
-   code:"13049647929", id:5},
-  {name:"3월 오끝",       biz:"행사",     type:"오늘끝딜",     start:"2026-03-07",stime:"1100",end:"2026-03-08",etime:"1059",
-   tags:"체험8종",
-   code:"10273725144", id:4},
-  {name:"3월 슈퍼적립",     biz:"행사",     type:"슈퍼적립",    start:"2026-03-01",stime:"0000",end:"2026-03-31",etime:"2359",
-   tags:"푸5|플3+소3",
-   code:"12739207913,12835060307", id:1},
-  // ── 26년 2월 ──
-  {name:"2월 한입발견회",   biz:"행사",     type:"한입발견회",   start:"2026-02-23",stime:"0000",end:"2026-03-01",etime:"2359",
-   tags:"말3+플3+초토3|오3+플3",
-   code:"12541261594,12409281824", id:7},
-  {name:"2월 푸드페스타",   biz:"행사",     type:"푸드페스타",  start:"2026-02-23",stime:"0000",end:"2026-03-01",etime:"2359",
-   tags:"플6+블토3|소10+꿀10|플4+요4|플4+4+블1|말5+초토3|블5+소1|라5+플1|알5+플1|오3+플3|푸3+플3|토핑6+6",
-   code:"11186574097,10301450854,12863905642,11809718890,12580546874,7587925609,12580366413,11470622749,12409281824,12794215123,10994518732", id:6},
-  {name:"2월 마시는 런칭",  biz:"자체행사", type:"신상품 런칭",  start:"2026-02-09",stime:"1100",end:"2026-02-22",etime:"2359",
-   tags:"마S2+메이커|마L2+토핑6",
-   code:"13049647929,13057158166", id:9},
-  {name:"2월 슈퍼적립",     biz:"행사",     type:"슈퍼적립",    start:"2026-02-01",stime:"0000",end:"2026-02-28",etime:"2359",
-   tags:"푸5|플3+소3",
-   code:"12739207913,12835060307", id:8},
-  // ── 26년 1월 ──
-  {name:"1월 오끝",         biz:"행사",     type:"오늘끝딜",     start:"2026-01-20",stime:"1100",end:"2026-01-21",etime:"1059",
-   tags:"소10+꿀10",
-   code:"10301450854", id:10},
-  {name:"1월 설날+얼리버드",biz:"행사",     type:"+세일",     start:"2026-01-19",stime:"0000",end:"2026-01-27",etime:"2359",
-   tags:"체험8종",
-   code:"10273725144", id:11},
-  {name:"1월 슈퍼적립",     biz:"행사",     type:"슈퍼적립",    start:"2026-01-01",stime:"0000",end:"2026-01-31",etime:"2359",
-   tags:"푸5|플3+소3",
-   code:"12739207913,12835060307", id:12},
-  {name:"1월 푸드페스타",   biz:"행사",     type:"푸드페스타",  start:"2026-01-05",stime:"0000",end:"2026-01-11",etime:"2359",
-   tags:"말5+초토3|블5+소1|플6+블토3|라5+플1|오3+플3|알5+플1|푸3+플3|소4+4+줄자|카4+플4|토핑6+6",
-   code:"12580546874,7587925609,11186574097,12580366413,12409281824,11470622749,12794215123,11943980667,11838572943,10994518732", id:15},
-  // ── 25년 12월 ──
-  {name:"12월저당기획",    biz:"자체행사", type:"자체행사",     start:"2025-12-29",stime:"1001",end:"2026-01-07",etime:"0959",
-   tags:"플4+요4",
-   code:"12863905642", id:17},
-  {name:"12월오늘끝딜",    biz:"행사",     type:"오늘끝딜",     start:"2025-12-13",stime:"1100",end:"2025-12-14",etime:"1059",
-   tags:"말3+플3+초토3",
-   code:"12541261594", id:13},
-  {name:"12월푸룬런칭",    biz:"자체행사", type:"신상품 런칭",  start:"2025-12-11",stime:"0000",end:"2025-12-17",etime:"2359",
-   tags:"푸3+플3",
-   code:"12794215123", id:16}
-];
+var PROMO_LIST=[];
 
 var SKU_LIST=[
   {tag:"토핑6+6",       code:"10994518732", name:"요즘 그릭요거트 토핑세트 콩포트 그래놀라 3종 택2(총 12개입)"},
