@@ -971,8 +971,9 @@ function loadSkuData(btnId) {
 
 function injectItemData(csv) {
   var lines = csv.trim().split('\n').slice(1); // 헤더 제거
-  var newNick = [], newFull = {}, newGroups = [], newCodeMap = {};
-  var curGroup = '', curItems = [];
+  var newNick = [], newFull = {}, newCodeMap = {};
+  var groupMap = {}; // 분류명 → items[]
+  var groupOrder = []; // 분류 순서 유지
 
   lines.forEach(function(line) {
     var cols = parseCSVLine(line);
@@ -982,55 +983,53 @@ function injectItemData(csv) {
     var name   = cols[2] ? cols[2].trim() : '';
     var nick   = cols[3] ? cols[3].trim() : '';
 
-    // ▶ 그룹 헤더 행
-    if (bunryu.indexOf('▶') >= 0 || bunryu.indexOf('►') >= 0) {
-      if (curGroup && curItems.length) {
-        newGroups.push({ label: curGroup, items: curItems.slice() });
-      }
-      curGroup = bunryu.replace(/[▶►▸]/g, '').trim();
-      curItems = [];
-      return;
-    }
-
-    // 데이터 행
+    // ▶ 형태의 그룹 헤더 행 스킵 (값 없음)
+    if (!code && !nick) return;
     if (!code || !nick) return;
+
+    // 운영여부 (F열 = cols[5])
     var active = cols[5] ? cols[5].trim().toLowerCase() : '';
     var isOff = (active === 'off' || active === 'x' || active === '비운영');
     if (isOff) {
       ITEM_INACTIVE[nick] = true;
-      SHOW_NICKS[nick] = false; // OFF 품목 기본 숨김
+      SHOW_NICKS[nick] = false;
     } else {
       delete ITEM_INACTIVE[nick];
-      if (SHOW_NICKS[nick] === false) SHOW_NICKS[nick] = true; // 복원
+      if (SHOW_NICKS[nick] === false) SHOW_NICKS[nick] = true;
     }
+
     newNick.push(nick);
     newFull[nick] = name;
     newCodeMap[code] = nick;
-    curItems.push(nick);
+
+    // 그룹핑: 분류(A열) 기준
+    var grpKey = bunryu || '기타';
+    if (!groupMap[grpKey]) {
+      groupMap[grpKey] = [];
+      groupOrder.push(grpKey);
+    }
+    groupMap[grpKey].push(nick);
   });
 
-  // 마지막 그룹 push
-  if (curGroup && curItems.length) {
-    newGroups.push({ label: curGroup, items: curItems.slice() });
+  if (newNick.length === 0) {
+    console.warn('[injectItemData] 파싱 실패 - 기존 유지');
+    return;
   }
 
-  if (newNick.length === 0) return; // 파싱 실패 시 기존 유지
+  // ITEM_GROUPS 재구성
+  var newGroups = groupOrder.map(function(label) {
+    return { label: label, items: groupMap[label] };
+  });
 
-  // 전역 변수 업데이트
-  ITEM_NICK = newNick;
-  ITEM_FULL = newFull;
+  ITEM_NICK   = newNick;
+  ITEM_FULL   = newFull;
   ITEM_GROUPS = newGroups;
 
-  // CODE_TO_NICK 업데이트
   Object.keys(newCodeMap).forEach(function(k) { CODE_TO_NICK[k] = newCodeMap[k]; });
-
-  // SHOW_NICKS 업데이트 (새 품목 기본 true)
   ITEM_NICK.forEach(function(n) { if (SHOW_NICKS[n] === undefined) SHOW_NICKS[n] = true; });
 
-  // 품목 필터 버튼 재빌드
   buildItemFilterBtns();
-
-  console.log('[injectItemData] 품목 로드:', ITEM_NICK.length, '개 | 그룹:', ITEM_GROUPS.map(function(g){return g.label+'('+g.items.length+')';}));
+  console.log('[injectItemData] 품목 로드:', ITEM_NICK.length, '개 | 그룹:', newGroups.map(function(g){return g.label+'('+g.items.length+')';}));
 }
 
 function buildItemFilterBtns() {
@@ -1172,9 +1171,9 @@ function injectPromoData(csv) {
     var sid=cols[0]?cols[0].trim():'';
     var typeRaw=cols[1]?cols[1].trim():'';
     var name=cols[2]?cols[2].trim():'';
-    var start=cols[3]?cols[3].trim():'';
+    var start=(cols[3]?cols[3].trim():'').substring(0,10); // 날짜 앞 10자리만
     var stime=cols[4]?cols[4].replace(':',''):'0000';
-    var end=cols[5]?cols[5].trim():'';
+    var end=(cols[5]?cols[5].trim():'').substring(0,10);   // 날짜 앞 10자리만
     var etime=cols[6]?cols[6].replace(':',''):'2359';
     var nick=cols[9]?cols[9].trim():'';
     var code=cols[11]?cols[11].trim():'';
