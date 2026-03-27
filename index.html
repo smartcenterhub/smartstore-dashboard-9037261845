@@ -558,7 +558,7 @@ textarea{resize:vertical;min-height:50px;}
 .month-divider-row.collapsed .month-arrow { transform:rotate(-90deg); }
 
 /* 운영 off 품목/상품 */
-.nfb.off-item  { opacity:0.38; color:var(--t3)!important; background:var(--glass-bg-dark)!important; border-color:rgba(0,0,0,0.06)!important; }
+.nfb.off-item  { opacity:0.45; color:#9898a8!important; background:var(--glass-bg-dark)!important; border-color:rgba(0,0,0,0.06)!important; font-weight:500!important; }
 .nfb.off-item.on { background:rgba(0,0,0,0.06)!important; color:var(--t3)!important; }
 .nsb.off-item  { opacity:0.38; color:var(--t3)!important; }
 tr.row-off-item td { color:var(--t4)!important; }
@@ -1071,9 +1071,11 @@ function buildItemFilterBtns() {
     div.className = 'nick-filter-row';
     nicks.forEach(function(nick) {
       var btn = document.createElement('button');
-      btn.className = 'nfb' + (SHOW_NICKS[nick] !== false ? ' on' : '');
+      var offCls = ITEM_INACTIVE[nick] ? ' off-item' : '';
+      btn.className = 'nfb' + (SHOW_NICKS[nick] !== false ? ' on' : '') + offCls;
       btn.dataset.nick = nick;
       btn.textContent = nick;
+      btn.title = ITEM_INACTIVE[nick] ? nick + ' (운영 중지)' : nick;
       btn.onclick = function() { toggleNick(nick, btn); };
       div.appendChild(btn);
     });
@@ -1091,6 +1093,18 @@ function buildItemFilterBtns() {
   allBtn.textContent = '전체';
   allBtn.onclick = function() { toggleAllNicks(allBtn); };
   allRow.appendChild(allBtn);
+
+  // ALL 버튼 (OFF 포함 전체)
+  var allOffBtn = document.createElement('button');
+  allOffBtn.id = 'nfb-all-inc-off';
+  allOffBtn.className = 'nfb';
+  allOffBtn.textContent = 'ALL';
+  allOffBtn.title = 'OFF 품목 포함 전체 표시';
+  allOffBtn.style.cssText = SHOW_OFF_ITEMS ?
+    'background:#0f172a;color:#fff;border-color:transparent;' :
+    'background:rgba(0,0,0,0.06);color:var(--t3);border-color:rgba(0,0,0,0.08);';
+  allOffBtn.onclick = function() { toggleAllIncOff(allOffBtn); };
+  allRow.appendChild(allOffBtn);
 
   // 구분선
   var sep = document.createElement('span');
