@@ -631,40 +631,7 @@ tr.row-off-item td.c-lbl { color:var(--t4)!important; }
   <div class="nick-filter-wrap">
     <span style="font-size:10px;font-weight:600;color:var(--t4);letter-spacing:.04em;text-transform:uppercase;">품목 표시</span>
     <div class="nick-filter-body" id="nick-filter-body">
-      <!-- 1행: 전체 + 요거트 + 마시는 -->
-      <div class="nick-filter-row">
-        <button class="nfb nfb-all on" id="nfb-all" onclick="toggleAllNicks(this)">전체</button>
-        <button id="nfb-all-inc-off" class="nfb" onclick="toggleAllIncOff(this)" title="OFF 품목 포함 전체 표시" style="background:rgba(0,0,0,0.06);color:var(--t3);border-color:rgba(0,0,0,0.08);">ALL</button>
-        <span style="width:1px;background:rgba(0,0,0,0.1);margin:0 4px;"></span>
-        <button class="nfb on" data-nick="플" onclick="toggleNick('플',this)">플</button>
-        <button class="nfb on" data-nick="소" onclick="toggleNick('소',this)">소</button>
-        <button class="nfb on" data-nick="알" onclick="toggleNick('알',this)">알</button>
-        <button class="nfb on" data-nick="말" onclick="toggleNick('말',this)">말</button>
-        <button class="nfb on" data-nick="라" onclick="toggleNick('라',this)">라</button>
-        <button class="nfb on" data-nick="블" onclick="toggleNick('블',this)">블</button>
-        <button class="nfb on" data-nick="애" onclick="toggleNick('애',this)">애</button>
-        <button class="nfb on" data-nick="오" onclick="toggleNick('오',this)">오</button>
-        <button class="nfb on" data-nick="크" onclick="toggleNick('크',this)">크</button>
-        <button class="nfb on" data-nick="카" onclick="toggleNick('카',this)">카</button>
-        <button class="nfb on" data-nick="푸" onclick="toggleNick('푸',this)">푸</button>
-        <button class="nfb on" data-nick="초" onclick="toggleNick('초',this)">초</button>
-        <span style="width:1px;background:rgba(0,0,0,0.1);margin:0 4px;"></span>
-        <button class="nfb on" data-nick="마S" onclick="toggleNick('마S',this)">마S</button>
-        <button class="nfb on" data-nick="마L" onclick="toggleNick('마L',this)">마L</button>
-      </div>
-      <!-- 2행: 토핑 + 굿즈 -->
-      <div class="nick-filter-row">
-        <button class="nfb on" data-nick="블토" onclick="toggleNick('블토',this)">블토</button>
-        <button class="nfb on" data-nick="크토" onclick="toggleNick('크토',this)">크토</button>
-        <button class="nfb on" data-nick="초토" onclick="toggleNick('초토',this)">초토</button>
-        <button class="nfb on" data-nick="딸토" onclick="toggleNick('딸토',this)">딸토</button>
-        <button class="nfb on" data-nick="카토" onclick="toggleNick('카토',this)">카토</button>
-        <span style="width:1px;background:rgba(0,0,0,0.1);margin:0 4px;"></span>
-        <button class="nfb on" data-nick="꿀" onclick="toggleNick('꿀',this)">꿀</button>
-        <button class="nfb on" data-nick="줄자" onclick="toggleNick('줄자',this)">줄자</button>
-        <button class="nfb on" data-nick="파우치" onclick="toggleNick('파우치',this)">파우치</button>
-        <button class="nfb on" data-nick="메이커" onclick="toggleNick('메이커',this)">메이커</button>
-      </div>
+      <!-- JS buildItemFilterBtns()로 동적 생성 -->
     </div>
   </div>
   <div class="mets" id="wk-mets"></div>
