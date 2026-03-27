@@ -1449,15 +1449,11 @@ function cloneDeep(o){return JSON.parse(JSON.stringify(o));}
 function showMsg(id,msg,ms){var e=el(id);if(e){e.textContent=msg;setTimeout(function(){e.textContent='';},ms||2000);}}
 function getFc(d,i){return parseInt((S.fc[d]&&S.fc[d][i])||0)||0;}
 function getMx(d,i){
-  if(S.mx[d]&&S.mx[d][i]!==undefined) return parseInt(S.mx[d][i])||0;
-  // 미래 날짜는 실제 입력값 없으면 0
-  var today=fmtDate(new Date());
-  if(d>today) return 0;
-  // 오늘·과거는 fc 기반 기본값
-  var f=getFc(d,i);return f>0?Math.floor(f*0.967):0;
+  // 시트 실제값만 반환 - 자동추산 없음
+  return parseInt((S.mx[d]&&S.mx[d][i])||0)||0;
 }
 function getAc(d,i){return parseInt((S.ac[d]&&S.ac[d][i])||0)||0;}
-function getMis(d,i){return Math.max(0,getMx(d,i)-getAc(d,i));}
+function getMis(d,i){var mx=getMx(d,i),ac=getAc(d,i);return (mx&&ac)?Math.max(0,mx-ac):0;}
 function getRawMx(d,i){return parseInt((S.mx[d]&&S.mx[d][i])||0)||0;}
 function getRawPv(d,i){return parseInt((S.pv[d]&&S.pv[d][i])||0)||0;}
 
