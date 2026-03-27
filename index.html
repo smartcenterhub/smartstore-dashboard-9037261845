@@ -556,6 +556,14 @@ textarea{resize:vertical;min-height:50px;}
 .month-divider-row:hover td { background:rgba(58,58,240,0.09)!important; }
 .month-divider-row .month-arrow { font-size:10px; margin-left:6px; transition:transform .2s; display:inline-block; }
 .month-divider-row.collapsed .month-arrow { transform:rotate(-90deg); }
+
+/* 운영 off 품목/상품 */
+.nfb.off-item  { opacity:0.38; color:var(--t3)!important; background:var(--glass-bg-dark)!important; border-color:rgba(0,0,0,0.06)!important; }
+.nfb.off-item.on { background:rgba(0,0,0,0.06)!important; color:var(--t3)!important; }
+.nsb.off-item  { opacity:0.38; color:var(--t3)!important; }
+tr.row-off-item td { color:var(--t4)!important; }
+tr.row-off-item td input { color:var(--t4)!important; }
+tr.row-off-item td.c-lbl { color:var(--t4)!important; }
 </style>
 </head>
 <body>
@@ -626,6 +634,7 @@ textarea{resize:vertical;min-height:50px;}
       <!-- 1행: 전체 + 요거트 + 마시는 -->
       <div class="nick-filter-row">
         <button class="nfb nfb-all on" id="nfb-all" onclick="toggleAllNicks(this)">전체</button>
+        <button id="nfb-all-inc-off" class="nfb" onclick="toggleAllIncOff(this)" title="OFF 품목 포함 전체 표시" style="background:rgba(0,0,0,0.06);color:var(--t3);border-color:rgba(0,0,0,0.08);">ALL</button>
         <span style="width:1px;background:rgba(0,0,0,0.1);margin:0 4px;"></span>
         <button class="nfb on" data-nick="플" onclick="toggleNick('플',this)">플</button>
         <button class="nfb on" data-nick="소" onclick="toggleNick('소',this)">소</button>
@@ -832,6 +841,8 @@ var S={
 };
 var SHOW={fc:true,pv:true,max:true,ac:true,mis:true};
 var SHOW_NICKS={};ITEM_NICK.forEach(function(n){SHOW_NICKS[n]=true;});
+var ITEM_INACTIVE={}; // 운영off 품목
+var SKU_INACTIVE={};  // 운영off 상품
 
 /* ── Google Sheets 품목코드 → 닉네임 매핑 ── */
 // 품목코드(Y-P-00) → 닉네임 매핑 (품목기준표용)
@@ -851,6 +862,7 @@ var SHEET_PUBLISHED_ID = '2PACX-1vRTTnSO3YARje1tCKU8XqFz9F4VGjmfIxBN8ab9WjTkuYxX
 var SHEET_SUMMARY_GID = '2087964304';
 var SHEET_PROMO_GID = '611987186';
 var SHEET_SKU_GID = '1480827801';
+var SHEET_ITEM_GID = '1280336969'; // ◆품목기준표
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzJ5PcJZetp7Pqb90YJdBW8Ofb745jikTtd0DaufAIwsK7nhXbilvsuwEG1cq4x6tsEew/exec';
 var SHEETS_LOADED = false;
 
@@ -878,7 +890,7 @@ var PROMO_BIZ_TYPES=['슈퍼적립','푸드페스타','한입발견회','취향�
 function loadAllData(){
   var btn=document.getElementById('sync-all-btn');
   if(btn){btn.textContent='⏳ 연동 중...';btn.disabled=true;}
-  var done=0, total=3;
+  var done=0, total=4;
   function check(){
     done++;
     if(done>=total){
@@ -917,6 +929,12 @@ function loadAllData(){
     console.error('[행사 오류]', e);
     addSyncLog('❌ 행사 연동 실패: '+e.message);check();
   });
+  // 품목기준표
+  var url4='https://docs.google.com/spreadsheets/d/e/'+SHEET_PUBLISHED_ID+'/pub?gid='+SHEET_ITEM_GID+'&single=true&output=csv&t='+Date.now();
+  fetch(url4).then(function(r){return r.text();}).then(function(csv){
+    injectItemData(csv);
+    addSyncLog('✅ 품목 연동 완료 ('+ITEM_NICK.length+'개)');check();
+  }).catch(function(e){addSyncLog('❌ 품목 연동 실패: '+e.message);check();});
   // SKU
   var url3='https://docs.google.com/spreadsheets/d/e/'+SHEET_PUBLISHED_ID+'/pub?gid='+SHEET_SKU_GID+'&single=true&output=csv&t='+Date.now();
   fetch(url3).then(function(r){return r.text();}).then(function(csv){
@@ -970,6 +988,129 @@ function loadSkuData(btnId) {
     });
 }
 
+
+function injectItemData(csv) {
+  var lines = csv.trim().split('\n').slice(1); // 헤더 제거
+  var newNick = [], newFull = {}, newGroups = [], newCodeMap = {};
+  var curGroup = '', curItems = [];
+
+  lines.forEach(function(line) {
+    var cols = parseCSVLine(line);
+    if (!cols || cols.length < 4) return;
+    var bunryu = cols[0] ? cols[0].trim() : '';
+    var code   = cols[1] ? cols[1].trim() : '';
+    var name   = cols[2] ? cols[2].trim() : '';
+    var nick   = cols[3] ? cols[3].trim() : '';
+
+    // ▶ 그룹 헤더 행
+    if (bunryu.indexOf('▶') >= 0 || bunryu.indexOf('►') >= 0) {
+      if (curGroup && curItems.length) {
+        newGroups.push({ label: curGroup, items: curItems.slice() });
+      }
+      curGroup = bunryu.replace(/[▶►▸]/g, '').trim();
+      curItems = [];
+      return;
+    }
+
+    // 데이터 행
+    if (!code || !nick) return;
+    var active = cols[5] ? cols[5].trim().toLowerCase() : '';
+    var isOff = (active === 'off' || active === 'x' || active === '비운영');
+    if (isOff) {
+      ITEM_INACTIVE[nick] = true;
+      SHOW_NICKS[nick] = false; // OFF 품목 기본 숨김
+    } else {
+      delete ITEM_INACTIVE[nick];
+      if (SHOW_NICKS[nick] === false) SHOW_NICKS[nick] = true; // 복원
+    }
+    newNick.push(nick);
+    newFull[nick] = name;
+    newCodeMap[code] = nick;
+    curItems.push(nick);
+  });
+
+  // 마지막 그룹 push
+  if (curGroup && curItems.length) {
+    newGroups.push({ label: curGroup, items: curItems.slice() });
+  }
+
+  if (newNick.length === 0) return; // 파싱 실패 시 기존 유지
+
+  // 전역 변수 업데이트
+  ITEM_NICK = newNick;
+  ITEM_FULL = newFull;
+  ITEM_GROUPS = newGroups;
+
+  // CODE_TO_NICK 업데이트
+  Object.keys(newCodeMap).forEach(function(k) { CODE_TO_NICK[k] = newCodeMap[k]; });
+
+  // SHOW_NICKS 업데이트 (새 품목 기본 true)
+  ITEM_NICK.forEach(function(n) { if (SHOW_NICKS[n] === undefined) SHOW_NICKS[n] = true; });
+
+  // 품목 필터 버튼 재빌드
+  buildItemFilterBtns();
+
+  console.log('[injectItemData] 품목 로드:', ITEM_NICK.length, '개 | 그룹:', ITEM_GROUPS.map(function(g){return g.label+'('+g.items.length+')';}));
+}
+
+function buildItemFilterBtns() {
+  var wrap = document.getElementById('nick-filter-body');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+
+  // 그룹별 줄 나누기
+  // 요거트+마시는 → 1줄 / 토핑+굿즈 → 2줄 (그룹 수 따라 자동)
+  var row1Groups = [], row2Groups = [];
+  ITEM_GROUPS.forEach(function(g, i) {
+    if (i < 2) row1Groups = row1Groups.concat(g.items);
+    else row2Groups = row2Groups.concat(g.items);
+  });
+
+  function makeRow(nicks) {
+    var div = document.createElement('div');
+    div.className = 'nick-filter-row';
+    nicks.forEach(function(nick) {
+      var btn = document.createElement('button');
+      btn.className = 'nfb' + (SHOW_NICKS[nick] !== false ? ' on' : '');
+      btn.dataset.nick = nick;
+      btn.textContent = nick;
+      btn.onclick = function() { toggleNick(nick, btn); };
+      div.appendChild(btn);
+    });
+    return div;
+  }
+
+  // 전체 버튼
+  var allRow = document.createElement('div');
+  allRow.className = 'nick-filter-row';
+  allRow.style.marginBottom = '4px';
+  var allBtn = document.createElement('button');
+  allBtn.id = 'nfb-all';
+  var allOn = ITEM_NICK.filter(function(n){return !ITEM_INACTIVE[n];}).every(function(n) { return SHOW_NICKS[n] !== false; });
+  allBtn.className = 'nfb nfb-all' + (allOn ? ' on' : '');
+  allBtn.textContent = '전체';
+  allBtn.onclick = function() { toggleAllNicks(allBtn); };
+  allRow.appendChild(allBtn);
+
+  // 구분선
+  var sep = document.createElement('span');
+  sep.style.cssText = 'width:1px;background:rgba(0,0,0,0.1);margin:0 4px;';
+  allRow.appendChild(sep);
+
+  // 1행 품목들도 allRow에 같이
+  row1Groups.forEach(function(nick) {
+    var btn = document.createElement('button');
+    btn.className = 'nfb' + (SHOW_NICKS[nick] !== false ? ' on' : '');
+    btn.dataset.nick = nick;
+    btn.textContent = nick;
+    btn.onclick = function() { toggleNick(nick, btn); };
+    allRow.appendChild(btn);
+  });
+
+  wrap.appendChild(allRow);
+  if (row2Groups.length) wrap.appendChild(makeRow(row2Groups));
+}
+
 function injectSkuData(csv) {
   var lines=csv.trim().split('\n').slice(1); // 헤더 제거
   var newList=[];
@@ -982,8 +1123,11 @@ function injectSkuData(csv) {
     var code=cols[3]?cols[3].trim():'';
     var name=cols[4]?cols[4].trim():'';
     var gubun=cols[1]?cols[1].trim():'';
+    var activeCol=cols[12]?cols[12].trim().toLowerCase():'';
+    var skuOff=(activeCol==='off'||activeCol==='x'||activeCol==='비운영');
     if(!tag||!code||seen[tag]) return;
     if(gubun==='행사제안불가') return; // 행사제안불가 제외
+    if(skuOff) SKU_INACTIVE[tag]=true; else delete SKU_INACTIVE[tag];
     seen[tag]=true;
     newList.push({tag:tag,code:code,name:name});
   });
@@ -1639,6 +1783,7 @@ function rWeekly(){
     g.items.forEach(function(nick){
       if(!SHOW_NICKS[nick]) return; // 품목 필터
       var rFc=0,rPv=0,rMx=0,rAc=0,rMis=0;
+      var itemOffCls=ITEM_INACTIVE[nick]?' row-off-item':'';
       var fcC='',pvC='',mxC='',acC='',misC='';
       days.forEach(function(d){
         var key=fmtDate(d),isT=key===todayK,isCl=!!S.cl[key];
@@ -1793,6 +1938,33 @@ function toggleAllMonths() {
   if(btn) btn.textContent = anyOpen ? '▸' : '▾';
 }
 
+
+var SHOW_OFF_ITEMS = false; // OFF 품목 표시 여부
+
+function toggleAllIncOff(btn) {
+  SHOW_OFF_ITEMS = !SHOW_OFF_ITEMS;
+  if (SHOW_OFF_ITEMS) {
+    // OFF 포함 전체 표시
+    ITEM_NICK.forEach(function(n) { SHOW_NICKS[n] = true; });
+    btn.style.background = '#0f172a';
+    btn.style.color = '#fff';
+    btn.style.borderColor = 'transparent';
+  } else {
+    // OFF 품목 다시 숨김
+    ITEM_NICK.forEach(function(n) {
+      if (ITEM_INACTIVE[n]) SHOW_NICKS[n] = false;
+    });
+    btn.style.background = 'rgba(0,0,0,0.06)';
+    btn.style.color = 'var(--t3)';
+    btn.style.borderColor = 'rgba(0,0,0,0.08)';
+  }
+  // 개별 버튼 상태 동기화
+  document.querySelectorAll('.nfb[data-nick]').forEach(function(b) {
+    b.classList.toggle('on', !!SHOW_NICKS[b.dataset.nick]);
+  });
+  rWeekly();
+}
+
 var PROMO_SORT = 'desc';           // 'desc' | 'asc'
 var PROMO_TYPE_FILTER = {};        // {} = 전체, {슈퍼적립:true} = 해당 유형만 숨김 아님 표시
 var PROMO_NICK_FILTER = [];        // 선택된 닉네임 배열
@@ -1858,9 +2030,10 @@ function buildNickSearchGrid(){
   grid.innerHTML='';
   SKU_LIST.forEach(function(s){
     var btn=document.createElement('button');
-    btn.className='nsb'+(PROMO_NICK_FILTER.indexOf(s.tag)>=0?' sel':'');
+    var skuOffCls=SKU_INACTIVE[s.tag]?' off-item':'';
+    btn.className='nsb'+(PROMO_NICK_FILTER.indexOf(s.tag)>=0?' sel':'')+skuOffCls;
     btn.textContent=s.tag;
-    btn.title=s.name||'';
+    btn.title=(SKU_INACTIVE[s.tag]?'[운영중지] ':'')+s.name||'';
     btn.onclick=function(){toggleNickFilter(s.tag,btn);};
     grid.appendChild(btn);
   });
