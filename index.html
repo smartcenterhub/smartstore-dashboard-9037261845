@@ -2623,6 +2623,8 @@ buildPromoMonthFilter();
 buildPromoListMonthFilter();
 rPromoList();
 rPromoTable();
+// 페이지 로드 시 자동 1회 연동
+setTimeout(function(){ loadAllData(); }, 500);
 rWeekly();
 buildSkuNickGrid();
 buildNickSearchGrid();
