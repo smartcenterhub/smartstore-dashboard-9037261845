@@ -1072,7 +1072,8 @@ function buildItemFilterBtns() {
     nicks.forEach(function(nick) {
       var btn = document.createElement('button');
       var offCls = ITEM_INACTIVE[nick] ? ' off-item' : '';
-      btn.className = 'nfb' + (SHOW_NICKS[nick] !== false ? ' on' : '') + offCls;
+      var isOn = SHOW_NICKS[nick] !== false && !ITEM_INACTIVE[nick];
+      btn.className = 'nfb' + (isOn ? ' on' : '') + offCls;
       btn.dataset.nick = nick;
       btn.textContent = nick;
       btn.title = ITEM_INACTIVE[nick] ? nick + ' (운영 중지)' : nick;
