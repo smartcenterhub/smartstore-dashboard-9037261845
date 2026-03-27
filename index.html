@@ -1711,11 +1711,11 @@ function rWeekly(){
   // 금일
   var tdFc=0,tdPv=0,tdMax=0,tdFin=0,tdMis=0,tdMisMap={};
   ITEM_NICK.forEach(function(it){
-    var f=getFc(today,it),pv=getPv(today,it),mx=getMx(today,it),ac=getAc(today,it);
-    var rawAc=parseInt((S.ac[today]&&S.ac[today][it])||0)||0;
+    var f=getFc(today,it),pv=getPv(today,it),ac=getAc(today,it);
     var rawMx=getRawMx(today,it);
-    var mis=(rawMx&&rawAc)?Math.max(0,mx-ac):0;
-    tdFc+=f; tdPv+=pv; tdMax+=mx; tdFin+=ac; tdMis+=mis;
+    var rawAc=parseInt((S.ac[today]&&S.ac[today][it])||0)||0;
+    var mis=(rawMx&&rawAc)?Math.max(0,rawMx-ac):0;
+    tdFc+=f; tdPv+=pv; tdMax+=rawMx; tdFin+=ac; tdMis+=mis;
     if(mis>0) tdMisMap[it]=mis;
   });
 
@@ -1724,8 +1724,9 @@ function rWeekly(){
   wkDays.forEach(function(d){
     var k=fmtDate(d);
     ITEM_NICK.forEach(function(it){
-      var f=getFc(k,it),pv=getPv(k,it),mx=getMx(k,it),ac=getAc(k,it),mis=Math.max(0,mx-ac);
-      sf+=f; spv+=pv; wkMax+=mx; sa+=ac; sm+=mis;
+      var f=getFc(k,it),pv=getPv(k,it),rawMxK=getRawMx(k,it),ac=getAc(k,it);
+      var mis=rawMxK?Math.max(0,rawMxK-ac):0;
+      sf+=f; spv+=pv; wkMax+=rawMxK; sa+=ac; sm+=mis;
       if(mis>0) wkMisMap[it]=(wkMisMap[it]||0)+mis;
     });
   });
@@ -1810,7 +1811,7 @@ function rWeekly(){
         var cc=isT?'col-today ':(isCl?'col-cl ':(isW?'col-wknd ':''));
         var fc=getFc(key,nick),pv=getPv(key,nick),mx=getMx(key,nick),ac=getAc(key,nick),mis=getMis(key,nick);
         var rawMx=getRawMx(key,nick),rawAc=getAc(key,nick);
-        rFc+=fc;rPv+=pv;rMx+=mx;rAc+=ac;rMis+=mis;
+        rFc+=fc;rPv+=pv;rMx+=rawMx;rAc+=ac;rMis+=mis;
         var ec=EDIT_COLS[key]?' editable':'';
         var isPast=key<todayK, isToday=key===todayK;
         var isWknd=d.getDay()===0||d.getDay()===6;
@@ -1822,7 +1823,7 @@ function rWeekly(){
         var acWarn=((isToday||isPast)&&!isWknd&&!isCl&&!rawAc)?' warn-ac':'';
         fcC +='<td class="'+cc+'"><input class="ci'+ec+'"      data-k="'+key+'" data-i="'+nick+'" data-t="fc" type="text" value="'+(fc||'')+'" placeholder="—"></td>';
         pvC +='<td class="'+cc+pvWarn+'"><input class="ci ci-pv'+ec+'" data-k="'+key+'" data-i="'+nick+'" data-t="pv" type="text" value="'+(pv||'')+'" placeholder="'+(pvWarn?'⚠️':'—')+'"></td>';
-        mxC +='<td class="'+cc+mxWarn+'"><input class="ci ci-mx'+ec+'" data-k="'+key+'" data-i="'+nick+'" data-t="mx" type="text" value="'+(mx||'')+'" placeholder="'+(mxWarn?'⚠️':'—')+'"></td>';
+        mxC +='<td class="'+cc+mxWarn+'"><input class="ci ci-mx'+ec+'" data-k="'+key+'" data-i="'+nick+'" data-t="mx" type="text" value="'+(rawMx||'')+'" placeholder="'+(mxWarn?'⚠️':'—')+'"></td>';
         acC +='<td class="'+cc+acWarn+'"><input class="ci ci-ac'+ec+'" data-k="'+key+'" data-i="'+nick+'" data-t="ac" type="text" value="'+(ac||'')+'" placeholder="'+(acWarn?'⚠️':'—')+'"></td>';
         // 5. 미출: mx·ac 둘 다 있으면 계산, 하나라도 없으면 ⚠️, 0이면 초록 0
         var misTd;
@@ -2438,7 +2439,8 @@ function rMonthly(){
   for(var dd=1; dd<=lastDay.getDate(); dd++){
     var dk = fmtDate(new Date(y, m, dd));
     ITEM_NICK.forEach(function(it){
-      var fc=getFc(dk,it), pv=getPv(dk,it), mx=getMx(dk,it), ac=getAc(dk,it), mis=getMis(dk,it);
+      var fc=getFc(dk,it), pv=getPv(dk,it), mx=getRawMx(dk,it), ac=getAc(dk,it);
+      var mis=(mx&&ac)?Math.max(0,mx-ac):0;
       sumFc+=fc; sumPv+=pv; sumMax+=mx; sumAc+=ac; sumMis+=mis;
       if(mis>0) misMap[it]=(misMap[it]||0)+mis;
     });
