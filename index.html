@@ -1259,10 +1259,10 @@ function injectMatrixData(csv, type) {
     for (var ci2 in dateMap) {
       var dateStr = dateMap[ci2];
       var val = parseInt(cols[ci2]) || 0;
-      if (val > 0) {
+      if (val !== null && !isNaN(val) && cols[ci2] !== undefined && cols[ci2].trim() !== '') {
         if (!target[dateStr]) target[dateStr] = {};
-        target[dateStr][nick] = val;
-        injected++;
+        target[dateStr][nick] = val; // 0도 저장
+        if (val > 0) injected++;
       }
     }
   }
@@ -1448,14 +1448,19 @@ function getWkNum(mon){var y=mon.getFullYear(),m=mon.getMonth(),fm=new Date(y,m,
 function cloneDeep(o){return JSON.parse(JSON.stringify(o));}
 function showMsg(id,msg,ms){var e=el(id);if(e){e.textContent=msg;setTimeout(function(){e.textContent='';},ms||2000);}}
 function getFc(d,i){return parseInt((S.fc[d]&&S.fc[d][i])||0)||0;}
-function getMx(d,i){
-  // 시트 실제값만 반환 - 자동추산 없음
-  return parseInt((S.mx[d]&&S.mx[d][i])||0)||0;
-}
-function getAc(d,i){return parseInt((S.ac[d]&&S.ac[d][i])||0)||0;}
-function getMis(d,i){var mx=getMx(d,i),ac=getAc(d,i);return (mx&&ac)?Math.max(0,mx-ac):0;}
-function getRawMx(d,i){return parseInt((S.mx[d]&&S.mx[d][i])||0)||0;}
-function getRawPv(d,i){return parseInt((S.pv[d]&&S.pv[d][i])||0)||0;}
+// hasVal: 시트에 값이 실제로 입력됐는지 (0 포함, 공란 제외)
+function hasVal(obj, d, i){ return obj[d] !== undefined && obj[d][i] !== undefined; }
+function hasFc(d,i){ return hasVal(S.fc,d,i); }
+function hasPv(d,i){ return hasVal(S.pv,d,i); }
+function hasMx(d,i){ return hasVal(S.mx,d,i); }
+function hasAc(d,i){ return hasVal(S.ac,d,i); }
+
+function getFc(d,i){ return hasFc(d,i) ? (parseInt(S.fc[d][i])||0) : 0; }
+function getMx(d,i){ return hasMx(d,i) ? (parseInt(S.mx[d][i])||0) : 0; }
+function getAc(d,i){ return hasAc(d,i) ? (parseInt(S.ac[d][i])||0) : 0; }
+function getMis(d,i){ if(!hasMx(d,i)||!hasAc(d,i)) return null; return Math.max(0,getMx(d,i)-getAc(d,i)); }
+function getRawMx(d,i){ return getMx(d,i); }
+function getRawPv(d,i){ return hasPv(d,i) ? (parseInt(S.pv[d][i])||0) : 0; }
 
 /* ── 전일 누적 계산 ──────────────────────────────────────────────
    오늘(d) 기준으로 하루씩 역산:
@@ -1812,20 +1817,21 @@ function rWeekly(){
         var isPast=key<todayK, isToday=key===todayK;
         var isWknd=d.getDay()===0||d.getDay()===6;
         // 2. 전일: 과거 영업일 중 rawPv 공란
-        var pvWarn=(isPast&&!isWknd&&!isCl&&!getRawPv(key,nick))?' warn-pv':'';
+        var pvWarn=(isPast&&!isWknd&&!isCl&&!hasPv(key,nick))?' warn-pv':'';
         // 3. 최대: 오늘 + 과거 영업일 공란
-        var mxWarn=((isToday||isPast)&&!isWknd&&!isCl&&!rawMx)?' warn-mx':'';
+        var mxWarn=((isToday||isPast)&&!isWknd&&!isCl&&!hasMx(key,nick))?' warn-mx':'';
         // 4. 출고: 오늘 + 과거 영업일 공란
-        var acWarn=((isToday||isPast)&&!isWknd&&!isCl&&!rawAc)?' warn-ac':'';
-        fcC +='<td class="'+cc+'"><input class="ci'+ec+'"      data-k="'+key+'" data-i="'+nick+'" data-t="fc" type="text" value="'+(fc||'')+'" placeholder="—"></td>';
-        pvC +='<td class="'+cc+pvWarn+'"><input class="ci ci-pv'+ec+'" data-k="'+key+'" data-i="'+nick+'" data-t="pv" type="text" value="'+(pv||'')+'" placeholder="'+(pvWarn?'⚠️':'—')+'"></td>';
-        mxC +='<td class="'+cc+mxWarn+'"><input class="ci ci-mx'+ec+'" data-k="'+key+'" data-i="'+nick+'" data-t="mx" type="text" value="'+(rawMx||'')+'" placeholder="'+(mxWarn?'⚠️':'—')+'"></td>';
-        acC +='<td class="'+cc+acWarn+'"><input class="ci ci-ac'+ec+'" data-k="'+key+'" data-i="'+nick+'" data-t="ac" type="text" value="'+(ac||'')+'" placeholder="'+(acWarn?'⚠️':'—')+'"></td>';
+        var acWarn=((isToday||isPast)&&!isWknd&&!isCl&&!hasAc(key,nick))?' warn-ac':'';
+        fcC +='<td class="'+cc+'"><input class="ci'+ec+'"      data-k="'+key+'" data-i="'+nick+'" data-t="fc" type="text" value="'+(hasFc(key,nick)?getFc(key,nick):'')+'" placeholder="—"></td>';
+        pvC +='<td class="'+cc+pvWarn+'"><input class="ci ci-pv'+ec+'" data-k="'+key+'" data-i="'+nick+'" data-t="pv" type="text" value="'+(hasPv(key,nick)?getPv(key,nick):'')+'" placeholder="'+(pvWarn?'⚠️':'—')+'"></td>';
+        mxC +='<td class="'+cc+mxWarn+'"><input class="ci ci-mx'+ec+'" data-k="'+key+'" data-i="'+nick+'" data-t="mx" type="text" value="'+(hasMx(key,nick)?getMx(key,nick):'')+'" placeholder="'+(mxWarn?'⚠️':'—')+'"></td>';
+        acC +='<td class="'+cc+acWarn+'"><input class="ci ci-ac'+ec+'" data-k="'+key+'" data-i="'+nick+'" data-t="ac" type="text" value="'+(hasAc(key,nick)?getAc(key,nick):'')+'" placeholder="'+(acWarn?'⚠️':'—')+'"></td>';
         // 5. 미출: mx·ac 둘 다 있으면 계산, 하나라도 없으면 ⚠️, 0이면 초록 0
         var misTd;
-        if(!rawMx||!rawAc){ misTd='<span class="dash">—</span>'; }
-        else if(mis===0){ misTd='<span class="mis-zero">0</span>'; }
-        else{ misTd='<span class="mis-num">'+mis+'</span>'; }
+        var misVal=getMis(key,nick);
+        if(misVal===null){ misTd='<span class="dash">—</span>'; }
+        else if(misVal===0){ misTd='<span class="mis-zero">0</span>'; }
+        else{ misTd='<span class="mis-num">'+misVal+'</span>'; }
         misC+='<td class="'+cc+'">'+misTd+'</td>';
       });
       var hFc=SHOW.fc?'':'wk-hide',hPv=SHOW.pv?'':'wk-hide',hMx=SHOW.max?'':'wk-hide',hAc=SHOW.ac?'':'wk-hide',hMs=SHOW.mis?'':'wk-hide';
